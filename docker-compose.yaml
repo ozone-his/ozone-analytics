@@ -1,10 +1,10 @@
 version: '2.1'
  
 services:
-  openmrs-referenceapplication-mysql:
+  mysql:
     restart: "always"
     image: mariadb:10.2
-    command: "mysqld --character-set-server=utf8 --collation-server=utf8_general_ci --log-bin --binlog-format=ROW  --server-id=2"
+    command: "mysqld --character-set-server=utf8 --collation-server=utf8_general_ci --log-bin --binlog-format=ROW  --server-id=2 --max_connections=1024"
     environment:
       MYSQL_DATABASE: ${MYSQL_DB:-openmrs}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-Admin123}
@@ -15,23 +15,9 @@ services:
     healthcheck:
       test: "exit 0"
     volumes:
-      - openmrs-referenceapplication-mysql-data:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
+      - ./flink/data:/data
  
-  openmrs-referenceapplication:
-    restart: "always"
-    image: openmrs/openmrs-reference-application-distro:demo
-    depends_on:
-      - openmrs-referenceapplication-mysql
-    ports:
-      - "8080:8080"
-    environment:
-      DB_DATABASE: ${MYSQL_DB:-openmrs}
-      DB_HOST: openmrs-referenceapplication-mysql
-      DB_USERNAME: ${MYSQL_USER:-openmrs}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-Admin123}
-      DB_CREATE_TABLES: 'true'
-      DB_AUTO_UPDATE: 'true'
-      MODULE_WEB_ADMIN: 'true'
   jobmanager:
     build:
       context: flink/server
@@ -39,7 +25,7 @@ services:
       - "8084:8081"
     command: jobmanager
     depends_on:
-      - openmrs-referenceapplication-mysql
+      - mysql
       - postgresql
     environment:
       - |
@@ -53,28 +39,32 @@ services:
     build:
       context: flink/server
     depends_on:
-      - jobmanager
+      jobmanager:
+        condition: service_started
     command: taskmanager
     environment:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
-        taskmanager.numberOfTaskSlots: 8
+        taskmanager.numberOfTaskSlots: 10
         io.tmp.dirs=/tmp/temp
     volumes:
       - flink-taskmanager-data:/tmp
+    restart: on-failure
   job-submit:
     build:
       context: flink/client
     depends_on:
       taskmanager:
         condition: service_started
+      jobmanager:
+        condition: service_started
       postgresql:
         condition: service_healthy
     volumes: 
       - ./flink/pipelines/job.properties:/opt/flink/job.properties
       - ./flink/pipelines/job.jar:/opt/flink/job.jar
-      - ./flink/liquidbase:/liquidbase
+      - ./flink/liquibase:/liquibase
     environment:
       ANALYTICS_DB_HOST: ${POSTGRES_DB_HOST}
       ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
@@ -205,8 +195,7 @@ services:
       - ./superset/config/datasources:/etc/superset/datasources
  
 volumes:
-   openmrs-referenceapplication-mysql-data:
-   openmrs-referenceapplication-data:
+   mysql-data:
    flink-jobmanager-data: ~
    flink-taskmanager-data: ~
    postgresql-data: ~

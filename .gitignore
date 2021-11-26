@@ -1,0 +1,3 @@
+*.jar
+*.sql
+flink/data/

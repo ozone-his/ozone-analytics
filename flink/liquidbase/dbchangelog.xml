@@ -39,9 +39,9 @@
         </createIndex>
     </changeSet>
     <changeSet author="enyachoke" id="1629094153790-4">
-        <createTable tableName="base_obs_query">
+        <createTable tableName="observations">
             <column name="obs_id" type="INTEGER">
-                <constraints nullable="false" primaryKey="true" primaryKeyName="base_obs_query_pkey"/>
+                <constraints nullable="false" primaryKey="true" primaryKeyName="observations_pkey"/>
             </column>
             <column name="person_id" type="INTEGER"/>
             <column name="concept_name" type="TEXT"/>
@@ -101,6 +101,28 @@
             <column name="locale_preferred" type="TEXT"/>
             <column name="retired" type="TEXT"/>
             <column name="uuid" type="TEXT"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="mksrom" id="1629094153790-6">
+        <createTable tableName="patients">
+            <column name="patient_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="patients_pkey"/>
+            </column>
+            <column name="given_name" type="VARCHAR"/>
+            <column name="middle_name" type="VARCHAR"/>
+            <column name="family_name" type="VARCHAR"/>
+            <column name="identifier" type="VARCHAR"/>
+            <column name="gender" type="VARCHAR"/>
+            <column name="birthdate" type="DATE"/>
+            <column name="birthdate_estimated" type="BOOLEAN"/>
+            <column name="city" type="VARCHAR"/>
+            <column name="dead" type="BOOLEAN"/>
+            <column name="death_date" type="DATE"/>
+            <column name="cause_of_death" type="BIGINT"/>
+            <column name="creator" type="int"/>
+            <column name="date_created" type="TIMESTAMP"/>
+            <column name="person_voided" type="BOOLEAN"/>
+            <column name="person_void_reason" type="VARCHAR"/>
         </createTable>
     </changeSet>
 </databaseChangeLog>
