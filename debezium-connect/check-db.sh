@@ -1,0 +1,1 @@
+docker exec -it ozone-analytics-kafka-1 ./bin/kafka-topics.sh --zookeeper zookeeper:2181 --list

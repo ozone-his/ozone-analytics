@@ -22,7 +22,7 @@
             <column name="age_at_visit_group_profile_1" type="VARCHAR"/>
             <column name="age_at_visit" type="BIGINT"/>
             <column name="dead" type="BOOLEAN"/>
-            <column name="death_date" type="date"/>
+            <column name="death_date" type="TIMESTAMP"/>
             <column name="cause_of_death" type="BIGINT"/>
             <column name="person_voided" type="BOOLEAN"/>
             <column name="person_uuid" type="VARCHAR(38)"/>
@@ -40,42 +40,42 @@
     </changeSet>
     <changeSet author="enyachoke" id="1629094153790-4">
         <createTable tableName="observations">
-            <column name="obs_id" type="INTEGER">
+            <column name="obs_id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="observations_pkey"/>
             </column>
-            <column name="person_id" type="INTEGER"/>
+            <column name="person_id" type="BIGINT"/>
             <column name="concept_name" type="TEXT"/>
-            <column name="concept_id" type="INTEGER"/>
-            <column name="obs_group_id" type="INTEGER"/>
+            <column name="concept_id" type="BIGINT"/>
+            <column name="obs_group_id" type="BIGINT"/>
             <column name="accession_number" type="TEXT"/>
             <column name="form_namespace_and_path" type="TEXT"/>
-            <column name="value_coded" type="INTEGER"/>
+            <column name="value_coded" type="BIGINT"/>
             <column name="value_coded_name" type="TEXT"/>
-            <column name="value_coded_name_id" type="INTEGER"/>
-            <column name="value_drug" type="INTEGER"/>
+            <column name="value_coded_name_id" type="BIGINT"/>
+            <column name="value_drug" type="BIGINT"/>
             <column name="value_datetime" type="TIMESTAMP WITHOUT TIME ZONE"/>
             <column name="value_numeric" type="FLOAT8"/>
             <column name="value_modifier" type="TEXT"/>
             <column name="value_text" type="TEXT"/>
             <column name="value_complex" type="TEXT"/>
             <column name="comments" type="TEXT"/>
-            <column name="creator" type="INTEGER"/>
+            <column name="creator" type="BIGINT"/>
             <column name="date_created" type="TIMESTAMP WITHOUT TIME ZONE"/>
-            <column name="obs_voided" type="TEXT"/>
+            <column name="obs_voided" type="BOOLEAN"/>
             <column name="obs_void_reason" type="TEXT"/>
-            <column name="previous_version" type="INTEGER"/>
-            <column name="encounter_id" type="INTEGER"/>
-            <column name="voided_2" type="TEXT"/>
-            <column name="visit_id" type="INTEGER"/>
+            <column name="previous_version" type="BIGINT"/>
+            <column name="encounter_id" type="BIGINT"/>
+            <column name="voided_2" type="BOOLEAN"/>
+            <column name="visit_id" type="BIGINT"/>
             <column name="visit_date_started" type="TIMESTAMP WITHOUT TIME ZONE"/>
             <column name="visit_date_stopped" type="TIMESTAMP WITHOUT TIME ZONE"/>
-            <column name="location_id" type="INTEGER"/>
+            <column name="location_id" type="BIGINT"/>
             <column name="encounter_type_name" type="TEXT"/>
             <column name="encounter_type_description" type="TEXT"/>
-            <column name="encounter_type_retired" type="TEXT"/>
+            <column name="encounter_type_retired" type="BOOLEAN"/>
             <column name="encounter_type_uuid" type="TEXT"/>
             <column name="visit_type_name" type="TEXT"/>
-            <column name="visit_type_retired" type="TEXT"/>
+            <column name="visit_type_retired" type="BOOLEAN"/>
             <column name="visit_type_uuid" type="TEXT"/>
             <column name="location_name" type="TEXT"/>
             <column name="location_address1" type="TEXT"/>
@@ -84,13 +84,13 @@
             <column name="location_state_province" type="TEXT"/>
             <column name="location_postal_code" type="TEXT"/>
             <column name="location_country" type="TEXT"/>
-            <column name="location_retired" type="TEXT"/>
+            <column name="location_retired" type="BOOLEAN"/>
             <column name="location_uuid" type="TEXT"/>
         </createTable>
     </changeSet>
     <changeSet author="enyachoke" id="1629094153790-5">
         <createTable tableName="concepts">
-            <column name="concept_id" type="INTEGER">
+            <column name="concept_id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="concepts_pkey"/>
             </column>
             <column name="concept_mapping_source" type="TEXT"/>
@@ -98,8 +98,8 @@
             <column name="concept_mapping_name" type="TEXT"/>
             <column name="name" type="TEXT"/>
             <column name="locale" type="TEXT"/>
-            <column name="locale_preferred" type="TEXT"/>
-            <column name="retired" type="TEXT"/>
+            <column name="locale_preferred" type="BOOLEAN"/>
+            <column name="retired" type="BOOLEAN"/>
             <column name="uuid" type="TEXT"/>
         </createTable>
     </changeSet>

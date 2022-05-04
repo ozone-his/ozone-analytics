@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9099:9099"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_NOTIFY_WEBHOOK_ENABLE: on
+      MINIO_NOTIFY_WEBHOOK_ENDPOINT: http://minio-webhook:3000
+    volumes:
+      - storage-minio:/data
+    command: server --address ":9099" --console-address ":9000" /data
+    restart: unless-stopped
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      DEFAULT_BUCKET: ${BUCKET}
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://minio:9099 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
+      /usr/bin/mc mb myminio/$${DEFAULT_BUCKET};
+      /usr/bin/mc event add myminio/$${DEFAULT_BUCKET} arn:minio:sqs::_:webhook --event put;
+      exit 0;
+      "
+  minio-webhook:
+     build: ./minio-webhook
+     environment:
+       ACCESS_KEY: ${MINIO_ROOT_USER}
+       ACCESS_SECRET: ${MINIO_ROOT_PASSWORD}
+       DATA_BUCKET: ${BUCKET}
+
+
+volumes:
+  storage-minio:
+  minio-config:

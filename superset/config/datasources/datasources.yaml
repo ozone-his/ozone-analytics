@@ -2,3 +2,6 @@ databases:
 - database_name: Postgres
   sqlalchemy_uri: postgresql://analytics:password@postgresql:5432/analytics
   tables: []
+- database_name: Drill
+  sqlalchemy_uri: drill+sadrill://drill:8047/s3?use_ssl=False
+  tables: []

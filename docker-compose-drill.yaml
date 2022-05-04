@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  drill:
+    image: apache/drill:latest
+    ports:
+      - "8047:8047"
+    stdin_open: true
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ./parquet:/parquet
+      - ./drill/data:/data
+      - ./drill/drill-override.conf:/opt/drill/conf/drill-override.conf
+      - ./drill/core-site.xml:/opt/drill/conf/core-site.xml
+      - ./drill/storage-plugins-override.conf:/opt/drill/conf/storage-plugins-override.conf

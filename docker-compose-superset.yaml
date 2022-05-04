@@ -1,0 +1,82 @@
+version: '3.8'
+services:
+  superset:
+    build:
+      context: superset/
+    environment:
+      - DATABASE_HOST=${POSTGRES_DB_HOST}
+      - DATABASE_DB=${SUPERSET_DB}
+      - DATABASE_USER=${SUPERSET_DB_USER}
+      - DATABASE_PASSWORD=${SUPERSET_DB_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+      - ANALYTICS_DATASOURCE_NAME=Postgres
+      - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
+      - ANALYTICS_DB_USER=${ANALYTICS_DB_USER}
+      - ANALYTICS_DB_PASSWORD=${ANALYTICS_DB_PASSWORD}
+      - ANALYTICS_DB_HOST=${POSTGRES_DB_HOST}
+    restart: on-failure
+    depends_on:
+      redis:
+        condition: service_started
+      postgresql:
+        condition: service_started
+      superset-init:
+        condition: service_completed_successfully
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./superset/config/datasources:/etc/superset/datasources
+  superset-worker:
+    build:
+      context: superset/
+    environment:
+      - DATABASE_HOST=${POSTGRES_DB_HOST}
+      - DATABASE_DB=${SUPERSET_DB}
+      - DATABASE_USER=${SUPERSET_DB_USER}
+      - DATABASE_PASSWORD=${SUPERSET_DB_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+    restart: on-failure
+    depends_on:
+      redis:
+        condition: service_started
+      postgresql:
+        condition: service_started
+      superset-init:
+        condition: service_completed_successfully
+    command: "celery worker --app=superset.tasks.celery_app:app"
+    volumes:
+     - ./superset/config/datasources:/etc/superset/datasources
+  redis:
+    image: redis
+    restart: on-failure
+    volumes:
+      - redis:/data
+
+  superset-init:
+    build:
+      context: superset/
+    environment:
+      - DATABASE_HOST=postgresql
+      - DATABASE_DB=${SUPERSET_DB}
+      - DATABASE_USER=${SUPERSET_DB_USER}
+      - DATABASE_PASSWORD=${SUPERSET_DB_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - SUPERSET_LOAD_EXAMPLES=${SUPERSET_LOAD_EXAMPLES}
+      - ANALYTICS_DATASOURCE_NAME=Postgres
+      - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
+      - ANALYTICS_DB_USER=${ANALYTICS_DB_USER}
+      - ANALYTICS_DB_PASSWORD=${ANALYTICS_DB_PASSWORD}
+      - ANALYTICS_DB_HOST=${POSTGRES_DB_HOST}
+    restart: on-failure
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: "/etc/superset/superset-init.sh"
+    volumes:
+      - ./superset/config/datasources:/etc/superset/datasources
+volumes:
+   redis: ~
+  
