@@ -84,7 +84,6 @@ services:
     ports:
      - 8083:8083
     depends_on:
-
      - kafka
      - mysql
     environment:
@@ -112,12 +111,23 @@ services:
     image: quay.io/cloudhut/kowl:master
     container_name: "kowl"
     restart: on-failure
+    entrypoint: /bin/sh
+    command: -c "echo \"$$KOWL_CONFIG_FILE\" > /tmp/config.yml; /app/kowl"
     ports:
       - "8282:8080"
     environment:
-      KAFKA_BROKERS: "kafka:9092"
+      CONFIG_FILEPATH: /tmp/config.yml
+      KOWL_CONFIG_FILE: |
+        kafka:
+          brokers: ["kafka:9092"]
+        connect:
+          enabled: true
+          clusters:
+            - name: openmrs
+              url: http://connect:8083
     depends_on:
       - "kafka"
+      - "connect"
   postgresql:
     restart: on-failure
     image: postgres:13
@@ -146,8 +156,8 @@ services:
   jobmanager:
     restart: on-failure
     build:
-      context: ./mekom-flink-job
-      # dockerfile: mekom-flink-job/Dockerfile
+      context: ./flink-jobs
+      # dockerfile: flink-jobs/Dockerfile
     image: mekomsolutions/flink-server
     ports:
       - "8084:8081"
@@ -189,8 +199,8 @@ services:
       - ./data:/data
   taskmanager:
     build:
-      context: ./mekom-flink-job
-      # dockerfile: mekom-flink-job/Dockerfile
+      context: ./flink-jobs
+      # dockerfile: flink-jobs/Dockerfile
     image: mekomsolutions/flink-server
     depends_on:
       jobmanager:

@@ -1,7 +1,5 @@
 *.jar
-*.sql
 flink/data/
-shared/
 data/mysql/
 parquet/
 drill/data
