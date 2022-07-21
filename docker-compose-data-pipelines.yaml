@@ -1,41 +1,5 @@
 version: '3.8'
 services:
-  # consul:
-  #   image: consul
-  #   restart: always
-  #   container_name: consul
-  #   volumes: 
-  #     - consul-data:/consul/data:rw
-  #   ports:
-  #     - 8300:8300
-  #     - 8301:8301
-  #     # - 8301:8301/udp
-  #     # - 8302:8302
-  #     # - 8302:8302/udp
-  #     # - 8400:8400
-  #     - 8500:8500
-  #     # - 53:53/udp
-  #   command: consul agent -data-dir=/consul/data -dev -client=0.0.0.0
-  # openmrs-referenceapplication:
-  #   restart: on-failure
-  #   image: openmrs/openmrs-reference-application-distro:demo
-  #   depends_on:
-  #     - mysql
-  #   ports:
-  #     - "8080:8080"
-  #   environment:
-  #     DB_DATABASE: ${MYSQL_DB:-openmrs}
-  #     DB_HOST: mysql
-  #     DB_USERNAME: ${MYSQL_USER:-openmrs}
-  #     DB_PASSWORD: ${MYSQL_PASSWORD:-Admin123}
-  #     DB_CREATE_TABLES: 'true'
-  #     DB_AUTO_UPDATE: 'true'
-  #     MODULE_WEB_ADMIN: 'true'
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs/"]
-  #     timeout: 20s
-  #   volumes:
-  #     - openmrs-referenceapplication-data:/usr/local/tomcat/.OpenMRS/
   zookeeper:
     restart: on-failure
     image: debezium/zookeeper:${DEBEZIUM_VERSION}
@@ -153,16 +117,28 @@ services:
       - "${SQL_SCRIPTS_PATH:-./sqls}/postgresql:/docker-entrypoint-initdb.d"
     ports:
       - "5432:5432"
+  migrate:
+    restart: on-failure
+    image: mekomsolutions/ozone-flink-jobs
+
+    command: /run.sh
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      - FLINK_JOB_POSTGRES_USER=${ANALYTICS_DB_USER}
+      - FLINK_JOB_POSTGRES_PASSWORD=${ANALYTICS_DB_PASSWORD}
+      - FLINK_JOB_POSTGRES_URL=jdbc:postgresql://postgresql:5432/analytics
+      - FLINK_JOB_PROPERTIES_BOOTSTRAP_SERVERS=kafka:9092
   jobmanager:
     restart: on-failure
-    build:
-      context: ./flink-jobs
-      # dockerfile: flink-jobs/Dockerfile
-    image: mekomsolutions/flink-server
+    image: mekomsolutions/ozone-flink-jobs
     ports:
       - "8084:8081"
     command: standalone-job --job-classname net.mekomsolutions.data.pipelines.streaming.StreamingETLJob --job-id 00000000000000000000000000000000 --properties-file /opt/flink/usrlib/job.properties --sink-url jdbc:postgresql://postgresql:5432/analytics --sink-username ${POSTGRES_USER} --sink-password ${POSTGRES_PASSWORD}
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       zookeeper:
         condition: service_started
       kafka:
@@ -190,6 +166,7 @@ services:
       - POSTGRES_PASSWORD=password
       - FLINK_JOB_POSTGRES_USER=postgres
       - FLINK_JOB_POSTGRES_PASSWORD=password
+      - FLINK_JOB_POSTGRES_URL=jdbc:postgresql://postgresql:5432/analytics
       - FLINK_JOB_PROPERTIES_BOOTSTRAP_SERVERS=kafka:9092
     volumes:
       - flink-shared-data:/tmp
@@ -198,10 +175,7 @@ services:
       - ./flink/pipelines/job.properties:/opt/flink/usrlib/job.properties
       - ./data:/data
   taskmanager:
-    build:
-      context: ./flink-jobs
-      # dockerfile: flink-jobs/Dockerfile
-    image: mekomsolutions/flink-server
+    image: mekomsolutions/ozone-flink-jobs
     depends_on:
       jobmanager:
         condition: service_started
@@ -236,8 +210,6 @@ services:
       - FLINK_JOB_PROPERTIES_BOOTSTRAP_SERVERS=kafka:9092
     volumes:
       - flink-shared-data:/tmp
-      # - ./flink/pipelines:/opt/flink/usrlib
-      # - ./flink/pipelines/job.properties:/opt/flink/job.properties
       - ./flink/pipelines/job.properties:/opt/flink/usrlib/job.properties
       - ./data:/data
     restart: on-failure
