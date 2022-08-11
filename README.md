@@ -49,7 +49,7 @@ This will start an extra two services
 
 ### Demo data
 
-The demo data included with this project is a dump from OpenMRS reference application configured to generate 75 patients and is loaded into mysql during initialization
+The demo data included with this project is a dump from OpenMRS reference application configured to generate 155 patients and is loaded into mysql during initialization
 
 ### Drill Analytics Server (Remote parquet files)
 
