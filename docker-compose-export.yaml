@@ -1,14 +1,12 @@
 version: '3.8'
 services:
   parquet-export:
-    build:
-      context: ./flink-jobs
-      dockerfile: Dockerfile_batch
+    image: mekomsolutions/flink-parquet-export
     depends_on:
      - postgresql
     environment:
       JDBC_URL: jdbc:postgresql://postgresql:5432/analytics
-      JDBC_USERNAME: postgres
+      JDBC_USERNAME: analytics
       JDBC_PASSWORD: password
       LOCATION_TAG: location1
     volumes:

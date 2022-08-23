@@ -1,4 +1,4 @@
-curl -i -X PUT -H "Accept:application/json" -H "Content-Type:application/json" http://connect:8083/connectors/openmrs-connector/config/ \
+curl -i -X PUT -H "Accept:application/json" -H "Content-Type:application/json" http://${CONNECT_HOST}:8083/connectors/openmrs-connector/config/ \
         -d ' {
                "connector.class": "io.debezium.connector.mysql.MySqlConnector",
                "tasks.max": "1",
