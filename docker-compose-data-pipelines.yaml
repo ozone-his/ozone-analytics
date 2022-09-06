@@ -42,7 +42,7 @@ services:
             ./bin/kafka-topics.sh --create --topic openmrs.openmrs.$$topic --partitions 1 --replication-factor 1 --if-not-exists --bootstrap-server kafka:9092
         done
     environment:
-     - TOPICS=appointment_service,appointment_service_type,care_setting,conditions,encounter,encounter_diagnosis,form,order_type,orders,obs,patient_appointment,patient_appointment_provider,patient_program,program
+     - TOPICS=${TOPICS}
     depends_on:
       - kafka
 
@@ -81,17 +81,32 @@ services:
      - CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE=false
      - CONNECT_CONFIG_PROVIDERS=file
      - CONNECT_CONFIG_PROVIDERS_FILE_CLASS=org.apache.kafka.common.config.provider.FileConfigProvider
-     - CONNECT_MYSQL_HOSTNAME=mysql
+     - CONNECT_MYSQL_HOSTNAME=${CONNECT_MYSQL_HOSTNAME}
      - CONNECT_MYSQL_USERNAME=root
      - CONNECT_MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD:-Admin123}
      - CONNECT_MYSQL_PORT=3306
      - CONNECT_MYSQL_SERVER_ID=2
      - CONNECT_MYSQL_SERVER_NAME=openmrs
      - CONNECT_MYSQL_INCLUDE_LIST=openmrs
+     - CONNECT_TABLE_EXCLUDE_LIST=openmrs.audit_log
      - CONNECT_MYSQL_HISTROY_TOPIC=dbhistory.openmrs
      - CONNECT_MYSQL_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     volumes:
       - ./debezium-connect/jars/TimestampConverter-1.2.4-SNAPSHOT.jar:/kafka/connect/debezium-connector-mysql/TimestampConverter-1.2.4-SNAPSHOT.jar
+  connect-setup:
+    restart: on-failure
+    build: ./setup-connect
+    depends_on:
+      - postgresql
+      - mysql
+      - jobmanager
+      - taskmanager
+      - connect
+    environment:
+      - CONNECT_HOST=connect
+      - ANALYTICS_DB_HOST=${ANALYTICS_DB_HOST}
+      - SOURCE_DB_HOST=${CONNECT_MYSQL_HOSTNAME}
+      - FLINK_JOBMANAGER_HOST=jobmanager
   kowl:
     image: quay.io/cloudhut/kowl:master
     container_name: "kowl"
@@ -161,10 +176,16 @@ services:
       - "8084:8081"
     command: standalone-job --job-classname net.mekomsolutions.data.pipelines.streaming.StreamingETLJob --job-id 00000000000000000000000000000000 --properties-file /opt/flink/usrlib/job.properties --sink-url jdbc:postgresql://postgresql:5432/analytics --sink-username ${POSTGRES_USER} --sink-password ${POSTGRES_PASSWORD}
     depends_on:
-      - migrate
-      - zookeeper
-      - kafka
-      - postgresql
+       migrate:
+         condition: service_completed_successfully
+       zookeeper:
+         condition: service_started
+       kafka:
+         condition: service_started
+       kafka-setup:
+         condition: service_completed_successfully
+       postgresql:
+         condition: service_started
     labels: 
       - kompose.service.group=flink-manager
     environment:
@@ -179,8 +200,8 @@ services:
         execution.checkpointing.unaligned: true  
         execution.checkpointing.interval: 30min
         execution.checkpointing.tolerable-failed-checkpoints: 100
-        jobmanager.memory.process.size: 1000m
-        state.checkpoints.num-retained: 5
+        jobmanager.memory.process.size: ${JOB_MANAGER_PROCESS_MEMORY}
+        state.checkpoints.num-retained: 4
         high-availability.storageDir: file:///tmp/ha
         high-availability: ZOOKEEPER
         high-availability.zookeeper.quorum: zookeeper:2181
@@ -192,8 +213,6 @@ services:
       - FLINK_JOB_PROPERTIES_BOOTSTRAP_SERVERS=kafka:9092
     volumes:
       - flink-shared-data:/tmp
-      # - ./flink/pipelines:/opt/flink/usrlib
-      # - ./flink/pipelines/job.properties:/opt/flink/job.properties
       - ./flink/pipelines/job.properties:/opt/flink/usrlib/job.properties
       - ./data:/data
   taskmanager:
@@ -201,9 +220,6 @@ services:
     depends_on:
       - jobmanager
       - zookeeper
-      # consul:
-      #   condition: service_started
-    #command: taskmanager --properties-file /opt/flink/usrlib/job.properties
     command: taskmanager --properties-file /opt/flink/usrlib/job.properties --sink-url jdbc:postgresql://postgresql:5432/analytics --sink-username ${POSTGRES_USER} --sink-password ${POSTGRES_PASSWORD}
     environment:
       - |
@@ -217,16 +233,16 @@ services:
         execution.checkpointing.unaligned: true  
         execution.checkpointing.interval: 30min
         execution.checkpointing.tolerable-failed-checkpoints: 100
-        taskmanager.memory.process.size: 6000m
-        taskmanager.memory.managed.fraction: 0.8
+        taskmanager.memory.process.size: ${TASK_MANAGER_PROCESS_MEMORY}
+        taskmanager.memory.managed.fraction: ${TASK_MANAGER_PROCESS_MANAGED_MEMORY_FRACTION}
         high-availability.storageDir: file:///tmp/ha
         high-availability: ZOOKEEPER
         high-availability.zookeeper.quorum: zookeeper:2181
-        state.checkpoints.num-retained: 5
+        state.checkpoints.num-retained: 4
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
-      - FLINK_JOB_POSTGRES_USER=postgres
-      - FLINK_JOB_POSTGRES_PASSWORD=password
+      - FLINK_JOB_POSTGRES_USER=${ANALYTICS_DB_USER}
+      - FLINK_JOB_POSTGRES_PASSWORD=${ANALYTICS_DB_PASSWORD}
       - FLINK_JOB_PROPERTIES_BOOTSTRAP_SERVERS=kafka:9092
     volumes:
       - flink-shared-data:/tmp
