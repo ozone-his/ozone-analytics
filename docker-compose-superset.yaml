@@ -1,6 +1,9 @@
 version: '3.8'
 services:
   superset:
+    networks:
+      ozone-analytics:
+      web:
     build:
       context: superset/
     environment:
@@ -26,7 +29,15 @@ services:
       - "8088:8088"
     volumes:
       - ./superset/config/datasources:/etc/superset/datasources
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.superset.rule=Host(`${SUPERSET_DOMAIN}`)
+      - traefik.docker.network=web
+      - traefik.http.routers.superset.entrypoints=websecure
+      - traefik.http.routers.superset.tls=true
   superset-worker:
+    networks:
+      ozone-analytics:
     build:
       context: superset/
     environment:
@@ -43,7 +54,7 @@ services:
         condition: service_started
       superset-init:
         condition: service_completed_successfully
-    command: "celery worker --app=superset.tasks.celery_app:app"
+    command: "celery --app=superset.tasks.celery_app:app worker"
     volumes:
      - ./superset/config/datasources:/etc/superset/datasources
   redis:
@@ -51,8 +62,12 @@ services:
     restart: on-failure
     volumes:
       - redis:/data
+    networks:
+      ozone-analytics:
 
   superset-init:
+    networks:
+      ozone-analytics:
     build:
       context: superset/
     environment:
@@ -79,4 +94,8 @@ services:
       - ./superset/config/datasources:/etc/superset/datasources
 volumes:
    redis: ~
-  
+networks:
+  ozone-analytics:
+  web: 
+    external: true
+    name: web

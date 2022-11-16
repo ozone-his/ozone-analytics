@@ -1,0 +1,2 @@
+taskmanager.memory.managed.size: 4000m
+taskmanager.memory.managed.fraction: 0.7
