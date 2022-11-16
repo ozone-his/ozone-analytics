@@ -1,11 +1,12 @@
-FROM amancevice/superset:1.5.1
+FROM apache/superset:1.5.2
+# Switching to root to install the required packages
 USER root
-
-RUN apt-get update && apt-get install -y git python3 python3-setuptools python3-pip
-
-RUN pip3 install sqlalchemy sqlalchemy-drill
-
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    unixodbc-dev \
+    unixodbc \
+    libpq-dev 
+RUN pip install git+https://github.com/JohnOmernik/sqlalchemy-drill.git
+RUN pip install pyodbc jpype1 sqlalchemy_trino
+RUN pip install --force-reinstall git+https://github.com/benoitc/gunicorn.git@master
+# Switching back to using the `superset` user
 USER superset
-COPY ./superset-init.sh /etc/superset
-COPY ./superset_config.py /etc/superset
-COPY ./security.py /etc/superset

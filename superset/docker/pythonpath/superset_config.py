@@ -1,9 +1,7 @@
 import logging
 import os
-from dotenv import load_dotenv
 from cachelib import RedisCache
 
-from cachelib.file import FileSystemCache
 
 logger = logging.getLogger()
 
@@ -65,18 +63,30 @@ CACHE_CONFIG = {
     'CACHE_REDIS_HOST': 'redis',
     'CACHE_REDIS_PORT': 6379,
     'CACHE_REDIS_DB': 1,
-    'CACHE_REDIS_URL': 'redis://redis:6379/1'
+    'CACHE_REDIS_URL': f"redis://{REDIS_HOST}:{REDIS_PORT}/1"
+}
+
+FILTER_STATE_CACHE_CONFIG = {
+    'CACHE_TYPE': 'RedisCache',
+    'CACHE_DEFAULT_TIMEOUT': 300,
+    'CACHE_KEY_PREFIX': 'superset_filter_',
+    'CACHE_REDIS_PORT': 6379,
+    'CACHE_REDIS_DB': 2,
+    'CACHE_REDIS_URL': f"redis://{REDIS_HOST}:{REDIS_PORT}/2"
+}
+
+EXPLORE_FORM_DATA_CACHE_CONFIG = {
+    'CACHE_TYPE': 'RedisCache',
+    'CACHE_DEFAULT_TIMEOUT': 300,
+    'CACHE_KEY_PREFIX': 'superset_form_date_',
+    'CACHE_REDIS_PORT': 6379,
+    'CACHE_REDIS_DB': 3,
+    'CACHE_REDIS_URL': f"redis://{REDIS_HOST}:{REDIS_PORT}/3"
 }
 
 CELERY_CONFIG = CeleryConfig
 SQLLAB_CTAS_NO_LIMIT = True
 PERMANENT_SESSION_LIFETIME = 86400
-FEATURE_FLAGS = {
-    "ENABLE_TEMPLATE_PROCESSING": True,
-    "DASHBOARD_CROSS_FILTERS": True,
-    "DASHBOARD_NATIVE_FILTERS": True,
-    "OMNIBAR": True
-}
 
 class ReverseProxied(object):
 
@@ -98,5 +108,4 @@ class ReverseProxied(object):
 
 
 ADDITIONAL_MIDDLEWARE = [ReverseProxied, ]
-AUTH_USER_REGISTRATION = True
-AUTH_USER_REGISTRATION_ROLE = 'Gamma'
+ENABLE_PROXY_FIX = True
