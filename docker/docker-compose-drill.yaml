@@ -1,6 +1,8 @@
 version: "3.8"
 services:
   drill:
+    networks:
+      ozone-analytics:
     image: apache/drill:latest
     ports:
       - "8047:8047"
@@ -14,3 +16,5 @@ services:
       - ./drill/drill-override.conf:/opt/drill/conf/drill-override.conf
       - ./drill/core-site.xml:/opt/drill/conf/core-site.xml
       - ./drill/storage-plugins-override.conf:/opt/drill/conf/storage-plugins-override.conf
+networks:
+  ozone-analytics:

@@ -1,6 +1,9 @@
 version: '3.8'
 services:
   minio:
+    networks:
+      ozone-analytics:
+      web:
     image: minio/minio:latest
     ports:
       - "9000:9000"
@@ -14,7 +17,17 @@ services:
       - storage-minio:/data
     command: server --address ":9099" --console-address ":9000" /data
     restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=web
+      - traefik.http.routers.minio.rule=Host(`${MINIO_DOMAIN}`)
+      - traefik.http.services.minio.loadbalancer.server.port=9000
+      - traefik.http.routers.minio.entrypoints=websecure
+      - traefik.http.routers.minio.tls=true
+
   createbuckets:
+    networks:
+      ozone-analytics:
     image: minio/mc
     depends_on:
       - minio
@@ -30,6 +43,8 @@ services:
       exit 0;
       "
   minio-webhook:
+     networks:
+      ozone-analytics:
      build: ./minio-webhook
      environment:
        ACCESS_KEY: ${MINIO_ROOT_USER}
@@ -40,3 +55,8 @@ services:
 volumes:
   storage-minio:
   minio-config:
+networks:
+  ozone-analytics:
+  web:
+    external: true
+    name: web

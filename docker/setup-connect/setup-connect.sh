@@ -2,9 +2,6 @@ set -e
 echo "Waiting for source database to be ready-----"
 /opt/wait-for-it.sh $SOURCE_DB_HOST:3306
 
-echo "Waiting for analytics database to be ready-----"
-/opt/wait-for-it.sh $ANALYTICS_DB_HOST:5432
-
 echo "Waiting for connect to be ready-----"
 /opt/wait-for-it.sh $CONNECT_HOST:8083
 

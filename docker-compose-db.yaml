@@ -1,0 +1,70 @@
+version: '3.8'
+services:
+  mysql:
+    networks:
+      ozone-analytics:
+    restart: on-failure
+    image: mariadb:10.3
+    command: "mysqld --character-set-server=utf8 --collation-server=utf8_general_ci --log-bin --binlog-format=ROW  --server-id=2 --max_connections=1024"
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DB:-openmrs}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-Admin123}
+      MYSQL_USER: ${MYSQL_USER:-openmrs}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-Admin123}
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+    volumes:
+      # - ./data/mysql:/var/lib/mysql:rw
+      - mysql-data:/var/lib/mysql:rw
+      - ./data/openmrs-data/openmrs-demo.sql:/docker-entrypoint-initdb.d/openmrs-demo.sql
+  postgresql:
+    networks:
+      ozone-analytics:
+    restart: on-failure
+    image: postgres:13
+    command: postgres -c wal_level=logical -c max_wal_senders=10 -c max_replication_slots=10
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Analystics
+      ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
+      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+      SUPERSET_DB: ${SUPERSET_DB}
+      SUPERSET_DB_USER: ${SUPERSET_DB_USER}
+      SUPERSET_DB_PASSWORD: ${SUPERSET_DB_PASSWORD}
+    volumes:
+      - ${POSTGRES_DATADIR:-postgresql-data}:/var/lib/postgresql/data
+      - "${SQL_SCRIPTS_PATH:-./sqls}/postgresql:/docker-entrypoint-initdb.d"
+    ports:
+      - "5432:5432"
+  migrate:
+    networks:
+      ozone-analytics:
+    restart: on-failure
+    image: mekomsolutions/ozone-flink-jobs
+
+    command: /run.sh
+    depends_on:
+      - postgresql
+    environment:
+      - FLINK_JOB_POSTGRES_USER=${ANALYTICS_DB_USER}
+      - FLINK_JOB_POSTGRES_PASSWORD=${ANALYTICS_DB_PASSWORD}
+      - FLINK_JOB_POSTGRES_URL=jdbc:postgresql://postgresql:5432/analytics
+      - FLINK_JOB_PROPERTIES_BOOTSTRAP_SERVERS=kafka:9092
+    labels: 
+      - kompose.service.group=flink-manager
+
+volumes:
+   mysql-data:
+   postgresql-data: ~
+networks:
+  ozone-analytics:

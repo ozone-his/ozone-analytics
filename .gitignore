@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 # Created by https://www.toptal.com/developers/gitignore/api/intellij,eclipse,maven,visualstudiocode,macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=intellij,eclipse,maven,visualstudiocode,macos
@@ -244,3 +245,11 @@ buildNumber.properties
 !.vscode/*.code-snippets
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,eclipse,maven,visualstudiocode,macos
+=======
+*.jar
+flink/data/
+data/mysql/
+parquet/
+drill/data
+letsencrypt
+>>>>>>> 384e29b (C2C-142: Update project to use Traefik to expose Minio and Superset)

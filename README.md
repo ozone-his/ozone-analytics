@@ -30,7 +30,11 @@ The services have been split into multiple files this allow you to start only th
 ### Streaming and flatening pipelines only (without Superset)
 In cases where you don't need to start Superset (for example when you will use the Parquet export  job to create Parquet files to later upload onto Minio or S3, or if you want to plug your own BI tool) you can start only the streaming and flatening data pipelines by running:
 
+<<<<<<< HEAD
 `$ docker compose -f docker/docker-compose-data-pipelines.yaml up -d --build`
+=======
+`$ docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml up -d --build`
+>>>>>>> 384e29b (C2C-142: Update project to use Traefik to expose Minio and Superset)
 
 Which will start ;
 
@@ -46,7 +50,7 @@ Which will start ;
 ###  Streaming, flatening pipelines and data visualization (with Superset)
 To start the complete streaming and flatening suite, including Superset as the BI tool, run:
 
-`$ docker compose -f docker/docker-compose-data-pipelines.yaml -f docker/docker-compose-superset.yaml up -d --build`
+`$ docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml -f docker-compose-superset.yaml up -d --build`
 
 This will start the following services:
 
@@ -71,12 +75,20 @@ In cases where you have multiple instances of Ozone deployed in remote locations
 
 To start this stack run;
 
+<<<<<<< HEAD
 `$ docker compose -f docker/docker-compose-superset.yaml -f docker/docker-compose-minio.yaml -f docker/docker-compose-drill.yaml up -d --build`
+=======
+`$ docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
+>>>>>>> 384e29b (C2C-142: Update project to use Traefik to expose Minio and Superset)
 
 ### Parquet Export Job
 For cases where you are running remote streaming and flatening data pipelines onsite with no network access (off-the-grid servers) and thus need to ship it to a the central repository (see **Drill-backed analytics server above**), you can run the export job to move data inside of a `./parquet`  folder of this project. This folder can then be uploaded  to the `openmrs-data` bucket on the MinIO server.
 
+<<<<<<< HEAD
 `$ docker compose -f docker/docker-compose-data-pipelines.yaml -f docker/docker-compose-export.yaml up parquet-export  --build`
+=======
+`$ docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml -f docker-compose-export.yaml up parquet-export  --build`
+>>>>>>> 384e29b (C2C-142: Update project to use Traefik to expose Minio and Superset)
 
 ### Services coordinates
 | Service  |   Access| Credentials|
