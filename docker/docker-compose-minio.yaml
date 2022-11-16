@@ -6,7 +6,7 @@ services:
       web:
     image: minio/minio:latest
     ports:
-      - "9000:9000"
+      - "8090:9000"
       - "9099:9099"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
