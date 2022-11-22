@@ -18,12 +18,15 @@ services:
     command: server --address ":9099" --console-address ":9000" /data
     restart: unless-stopped
     labels:
-      - traefik.enable=true
-      - traefik.docker.network=web
-      - traefik.http.routers.minio.rule=Host(`${MINIO_DOMAIN}`)
-      - traefik.http.services.minio.loadbalancer.server.port=9000
-      - traefik.http.routers.minio.entrypoints=websecure
-      - traefik.http.routers.minio.tls=true
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.minio.rule=Host(`${MINIO_DOMAIN}`)"
+      - "traefik.http.routers.minio.tls=true"
+      - "traefik.http.routers.minio.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.minio.entrypoints=websecure"
+      - "traefik.http.middlewares.minio-redirect-web-secure.redirectscheme.scheme=https"
+      - "traefik.http.routers.minio.middlewares=superset-redirect-web-secure"
+      - "traefik.http.services.minio.loadbalancer.server.port=9000"
 
   createbuckets:
     networks:
