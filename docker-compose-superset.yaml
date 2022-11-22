@@ -21,6 +21,7 @@ x-superset-environment: &superset-environment
   - ENABLE_PROXY_FIX=${ENABLE_PROXY_FIX}
   - REDIS_HOST=${REDIS_HOST}
   - REDIS_PORT=${REDIS_PORT}
+  - ADMIN_PASSWORD=${ADMIN_PASSWORD}
 version: '3.8'
 services:
   superset:
