@@ -46,9 +46,13 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=web"
       - "traefik.http.routers.superset.rule=Host(`${SUPERSET_DOMAIN}`)"
-      - "traefik.http.services.superset.loadbalancer.server.port=8088"
       - "traefik.http.routers.superset.tls=true"
       - "traefik.http.routers.superset.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.superset.entrypoints=websecure"
+      - "traefik.http.middlewares.superset-redirect-web-secure.redirectscheme.scheme=https"
+      - "traefik.http.routers.superset-web.middlewares=superset-redirect-web-secure"        
+      - "traefik.http.routers.superset-web.rule=Host(`${SUPERSET_DOMAIN}`)"
+      - "traefik.http.routers.superset-web.entrypoints=web"
   superset-worker:
     networks:
       ozone-analytics:
