@@ -4,9 +4,8 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     unixodbc-dev \
     unixodbc \
-    libpq-dev 
-RUN pip install git+https://github.com/JohnOmernik/sqlalchemy-drill.git
-RUN pip install pyodbc jpype1 sqlalchemy_trino
-RUN pip install --force-reinstall git+https://github.com/benoitc/gunicorn.git@master
+    libpq-dev \
+    git
+RUN SETUPTOOLS_USE_DISTUTILS=stdlib pip install git+https://github.com/JohnOmernik/sqlalchemy-drill.git pyodbc jpype1 sqlalchemy_trino
 # Switching back to using the `superset` user
 USER superset
