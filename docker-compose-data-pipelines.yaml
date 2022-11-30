@@ -46,6 +46,7 @@ services:
           do
             echo "Creating topic $$topic..."
             ./bin/kafka-topics.sh --create --topic openmrs.openmrs.$$topic --partitions 1 --replication-factor 1 --if-not-exists --bootstrap-server kafka:9092
+            ./bin/kafka-configs.sh --bootstrap-server=kafka:9092  --entity-type topics --entity-name openmrs.openmrs.$$topic --alter --add-config retention.hours=4380
         done
     environment:
      - TOPICS=${TOPICS}
