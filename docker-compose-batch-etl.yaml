@@ -10,7 +10,7 @@ services:
     environment:
       - FLINK_JOB_POSTGRES_USER=${ANALYTICS_DB_USER}
       - FLINK_JOB_POSTGRES_PASSWORD=${ANALYTICS_DB_PASSWORD}
-      - FLINK_JOB_POSTGRES_URL=jdbc:postgresql://postgresql:5432/analytics
+      - FLINK_JOB_POSTGRES_URL=jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME}
       - FLINK_JOB_PROPERTIES_BOOTSTRAP_SERVERS=kafka:9092
   batch-etl:
     networks:
@@ -22,7 +22,7 @@ services:
       SOURCE_JDBC_URL: jdbc:mysql://mysql:3306/openmrs
       SOURCE_JDBC_USERNAME: root
       SOURCE_JDBC_PASSWORD: ${MYSQL_ROOT_PASSWORD:-Admin123}
-      SINK_JDBC_URL: jdbc:postgresql://postgresql:5432/analytics
+      SINK_JDBC_URL: jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME}
       SINK_JDBC_USERNAME: ${ANALYTICS_DB_USER}
       SINK_JDBC_PASSWORD: ${ANALYTICS_DB_PASSWORD}
       PROPERTIES_FILE: '/opt/flink/usrlib/job.properties'

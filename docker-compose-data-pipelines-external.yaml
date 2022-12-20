@@ -28,8 +28,6 @@ services:
      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
     volumes:
       - kafka-data:/kafka/data
-    depends_on:
-      - mysql
     healthcheck:
       test: ["/bin/bash", "-c", "./bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --list"]
   kafka-setup:
@@ -61,7 +59,6 @@ services:
      - 8083:8083
     depends_on:
       - kafka-setup
-      - mysql
     environment:
      - BOOTSTRAP_SERVERS=kafka:9092
      - GROUP_ID=1
@@ -90,8 +87,6 @@ services:
     restart: on-failure
     build: ./setup-connect
     depends_on:
-      - postgresql
-      - mysql
       - jobmanager
       - taskmanager
       - connect
@@ -100,32 +95,6 @@ services:
       - ANALYTICS_DB_HOST=${ANALYTICS_DB_HOST}
       - SOURCE_DB_HOST=${CONNECT_MYSQL_HOSTNAME}
       - FLINK_JOBMANAGER_HOST=jobmanager
-  kowl:
-    networks:
-      ozone-analytics:
-    image: quay.io/cloudhut/kowl:master
-    container_name: "kowl"
-    restart: on-failure
-    entrypoint: /bin/sh
-    command: -c "echo \"$$KOWL_CONFIG_FILE\" > /tmp/config.yml; /app/kowl"
-    ports:
-      - "8282:8080"
-    environment:
-      CONFIG_FILEPATH: /tmp/config.yml
-      KOWL_CONFIG_FILE: |
-        kafka:
-          brokers: ["kafka:9092"]
-        connect:
-          enabled: true
-          clusters:
-            - name: openmrs
-              url: http://connect:8083
-    depends_on:
-      - "kafka"
-      - "connect"
-    labels: 
-      kompose.service.type: clusterip
-
   migrate:
     networks:
       ozone-analytics:
@@ -133,8 +102,6 @@ services:
     image: mekomsolutions/ozone-flink-jobs
 
     command: /run.sh
-    depends_on:
-      - postgresql
     environment:
       - FLINK_JOB_POSTGRES_USER=${ANALYTICS_DB_USER}
       - FLINK_JOB_POSTGRES_PASSWORD=${ANALYTICS_DB_PASSWORD}
@@ -159,8 +126,6 @@ services:
          condition: service_started
        kafka-setup:
          condition: service_completed_successfully
-       postgresql:
-         condition: service_started
     labels: 
       - kompose.service.group=flink-manager
     environment:
