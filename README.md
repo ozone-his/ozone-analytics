@@ -78,6 +78,10 @@ For cases where you are running remote streaming and flatening data pipelines on
 
 `$ docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml -f docker-compose-export.yaml up parquet-export  --build`
 
+### Usage with external databases
+
+When using this project in production the openmrs database and the 
+
 ### Services coordinates
 | Service  |   Access| Credentials|
 | ------------ | ------------ |------------ |
