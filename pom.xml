@@ -1,0 +1,79 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.ozonehis</groupId>
+  <artifactId>ozone-analytics</artifactId>
+  <name>Ozone Analytics</name>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <organization>
+    <name>Ozone HIS</name>
+    <url>http://www.ozone-his.com</url>
+  </organization>
+  <developers>
+    <developer>
+      <name>Mekom Solutions</name>
+      <url>http://www.mekomsolutions.com</url>
+    </developer>
+  </developers>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+          <execution>
+            <id>copy-resources</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/${project.artifactId}-${project.version}</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/docker</directory>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Packaging the project as a installable/deployable file -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>package-distro-artifact</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <appendAssemblyId>false</appendAssemblyId>
+              <descriptors>
+                <descriptor>assembly.xml</descriptor>
+              </descriptors>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  <distributionManagement>
+    <repository>
+      <name>Mekom Solutions Nexus repo</name>
+      <id>mks-nexus-private</id>
+      <url>https://nexus.mekomsolutions.net/repository/maven-private/</url>
+    </repository>
+    <snapshotRepository>
+      <name>Mekom Solutions Nexus repo for snapshots</name>
+      <id>mks-nexus-private-snapshots</id>
+      <url>https://nexus.mekomsolutions.net/repository/maven-private-snapshots</url>
+    </snapshotRepository>
+  </distributionManagement>
+</project>
