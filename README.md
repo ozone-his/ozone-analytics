@@ -30,7 +30,7 @@ The services have been split into multiple files this allow you to start only th
 ### Streaming and flatening pipelines only (without Superset)
 In cases where you don't need to start Superset (for example when you will use the Parquet export  job to create Parquet files to later upload onto Minio or S3, or if you want to plug your own BI tool) you can start only the streaming and flatening data pipelines by running:
 
-`$ docker compose -f docker-compose-data-pipelines.yaml up -d --build`
+`$ docker compose -f docker/docker-compose-data-pipelines.yaml up -d --build`
 
 Which will start ;
 
@@ -46,7 +46,7 @@ Which will start ;
 ###  Streaming, flatening pipelines and data visualization (with Superset)
 To start the complete streaming and flatening suite, including Superset as the BI tool, run:
 
-`$ docker compose -f docker-compose-data-pipelines.yaml -f docker-compose-superset.yaml up -d --build`
+`$ docker compose -f docker/docker-compose-data-pipelines.yaml -f docker/docker-compose-superset.yaml up -d --build`
 
 This will start the following services:
 
@@ -55,7 +55,7 @@ This will start the following services:
 * [Superset Worker](https://superset.apache.org/docs/intro "Superset Worker") - Run Superset background tasks.
 
 
-> NOTE: The streaming jobs may fail for a while during the initial start up as Flink discovers data partitions from Kafka. You can wait for this to sort itself out or you can try to restart the `jobmanager` and `taskmanager` services with `docker compose -f docker-compose-data-pipelines.yaml restart jobmanager taskmanager`
+> NOTE: The streaming jobs may fail for a while during the initial start up as Flink discovers data partitions from Kafka. You can wait for this to sort itself out or you can try to restart the `jobmanager` and `taskmanager` services with `docker compose -f docker/docker-compose-data-pipelines.yaml restart jobmanager taskmanager`
 
 ### Demo data
 
@@ -71,12 +71,12 @@ In cases where you have multiple instances of Ozone deployed in remote locations
 
 To start this stack run;
 
-`$ docker compose -f docker-compose-superset.yaml -f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
+`$ docker compose -f docker/docker-compose-superset.yaml -f docker/docker-compose-minio.yaml -f docker/docker-compose-drill.yaml up -d --build`
 
 ### Parquet Export Job
 For cases where you are running remote streaming and flatening data pipelines onsite with no network access (off-the-grid servers) and thus need to ship it to a the central repository (see **Drill-backed analytics server above**), you can run the export job to move data inside of a `./parquet`  folder of this project. This folder can then be uploaded  to the `openmrs-data` bucket on the MinIO server.
 
-`$ docker compose -f docker-compose-data-pipelines.yaml -f docker-compose-export.yaml up parquet-export  --build`
+`$ docker compose -f docker/docker-compose-data-pipelines.yaml -f docker/docker-compose-export.yaml up parquet-export  --build`
 
 ### Services coordinates
 | Service  |   Access| Credentials|
