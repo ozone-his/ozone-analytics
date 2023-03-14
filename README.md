@@ -30,11 +30,7 @@ The services have been split into multiple files this allow you to start only th
 ### Streaming and flatening pipelines only (without Superset)
 In cases where you don't need to start Superset (for example when you will use the Parquet export  job to create Parquet files to later upload onto Minio or S3, or if you want to plug your own BI tool) you can start only the streaming and flatening data pipelines by running:
 
-<<<<<<< HEAD
-`$ docker compose -f docker/docker-compose-data-pipelines.yaml up -d --build`
-=======
 `$ docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml up -d --build`
->>>>>>> 384e29b (C2C-142: Update project to use Traefik to expose Minio and Superset)
 
 Which will start ;
 
@@ -75,25 +71,39 @@ In cases where you have multiple instances of Ozone deployed in remote locations
 
 To start this stack run;
 
-<<<<<<< HEAD
-`$ docker compose -f docker/docker-compose-superset.yaml -f docker/docker-compose-minio.yaml -f docker/docker-compose-drill.yaml up -d --build`
-=======
 `$ docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
->>>>>>> 384e29b (C2C-142: Update project to use Traefik to expose Minio and Superset)
 
 ### Parquet Export Job
 For cases where you are running remote streaming and flatening data pipelines onsite with no network access (off-the-grid servers) and thus need to ship it to a the central repository (see **Drill-backed analytics server above**), you can run the export job to move data inside of a `./parquet`  folder of this project. This folder can then be uploaded  to the `openmrs-data` bucket on the MinIO server.
 
-<<<<<<< HEAD
-`$ docker compose -f docker/docker-compose-data-pipelines.yaml -f docker/docker-compose-export.yaml up parquet-export  --build`
-=======
 `$ docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml -f docker-compose-export.yaml up parquet-export  --build`
->>>>>>> 384e29b (C2C-142: Update project to use Traefik to expose Minio and Superset)
 
 ### Usage with external databases
 
-When using this project in production the openmrs database and the 
-
+When using this project in production the openmrs database and the analytics will be external to the project meaning you will need to override some environmental variables at runtime.
+| Variable|Description |
+|---|----|
+|CONNECT_MYSQL_HOSTNAME|The project uses Kafka connect to get the OpenMRS changes we need to set this to the source OpenMRS MYSQL host|
+|CONNECT_MYSQL_PORT|This is the port the source OpenMRS MYSQL is listening on|
+|CONNECT_MYSQL_USERNAME|This is the username of a user in the source  OpenMRS MYSQL with the privileges `SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAVE, REPLICATION` |
+|CONNECT_MYSQL_PASSWORD|This is the password of `CONNECT_MYSQL_USERNAME`|
+|ANALYTICS_DB_HOST|This is the host of the analytics sink PostgresSQL database |
+|ANALYTICS_DB_PORT|This is the port on which the analytics sink PostgresSQL database is listening on |
+|ANALYTICS_DB_NAME|This is name of the analytics sink database|
+|ANALYTICS_DB_USER|This is the username for for writing into the analytics sink database|
+|ANALYTICS_DB_PASSWORD|This is the password for `ANALYTICS_DB_PASSWORD`|
+example for a source and sink databases listening on the host. The example assumes a Linux host
+```
+export CONNECT_MYSQL_HOSTNAME=172.17.0.1 && \
+export CONNECT_MYSQL_PORT=3306 && \
+export CONNECT_MYSQL_USERNAME=root && \
+export CONNECT_MYSQL_PASSWORD=3cY8Kve4lGey && \
+export ANALYTICS_DB_HOST=172.17.0.1 && \
+export ANALYTICS_DB_PORT=5432 && \
+export ANALYTICS_DB_NAME=analytics && \
+export ANALYTICS_DB_USER=analytics && \
+export ANALYTICS_DB_PASSWORD=password
+```
 ### Services coordinates
 | Service  |   Access| Credentials|
 | ------------ | ------------ |------------ |
