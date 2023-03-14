@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   parquet-export:
-    image: mekomsolutions/flink-parquet-export
+    image: mekomsolutions/ozone-flink-parquet-export:1.0.0-alpha1
     depends_on:
      - postgresql
     environment:

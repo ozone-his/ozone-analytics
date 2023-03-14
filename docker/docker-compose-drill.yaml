@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   drill:
-    image: apache/drill:latest
+    image: apache/drill:1.21.0-openjdk-11
     ports:
       - "8047:8047"
     stdin_open: true

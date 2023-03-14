@@ -157,7 +157,7 @@ services:
       - "5432:5432"
   migrate:
     restart: on-failure
-    image: mekomsolutions/ozone-flink-jobs
+    image: mekomsolutions/ozone-flink-jobs:1.0.0-alpha1
 
     command: /run.sh
     depends_on:
@@ -171,7 +171,7 @@ services:
       - kompose.service.group=flink-manager
   jobmanager:
     restart: on-failure
-    image: mekomsolutions/ozone-flink-jobs
+    image: mekomsolutions/ozone-flink-jobs:1.0.0-alpha1
     ports:
       - "8084:8081"
     command: standalone-job --job-classname net.mekomsolutions.data.pipelines.streaming.StreamingETLJob --job-id 00000000000000000000000000000000 --properties-file /opt/flink/usrlib/job.properties --sink-url jdbc:postgresql://postgresql:5432/analytics --sink-username ${POSTGRES_USER} --sink-password ${POSTGRES_PASSWORD}
@@ -216,7 +216,7 @@ services:
       - ./flink/pipelines/job.properties:/opt/flink/usrlib/job.properties
       - ./data:/data
   taskmanager:
-    image: mekomsolutions/ozone-flink-jobs
+    image: mekomsolutions/ozone-flink-jobs:1.0.0-alpha1
     depends_on:
       - jobmanager
       - zookeeper
