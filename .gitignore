@@ -244,3 +244,8 @@ buildNumber.properties
 !.vscode/*.code-snippets
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,eclipse,maven,visualstudiocode,macos
+data
+letsencrypt
+minio-webhook/node_modules
+.pyc
+superset/docker/pythonpath
