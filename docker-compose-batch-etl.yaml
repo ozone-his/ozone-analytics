@@ -4,7 +4,7 @@ services:
     networks:
       ozone-analytics:
     restart: on-failure
-    image: mekomsolutions/ozone-flink-jobs:1.0.0-alpha1
+    image: mekomsolutions/ozone-flink-jobs
 
     command: /run.sh
     environment:
@@ -15,7 +15,7 @@ services:
   batch-etl:
     networks:
       ozone-analytics:
-    image: mekomsolutions/ozone-flink-jobs-batch:1.0.0-alpha1
+    image: mekomsolutions/ozone-flink-jobs-batch
     depends_on:
       - migrate
     environment:
