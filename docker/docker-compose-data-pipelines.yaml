@@ -31,7 +31,7 @@ services:
     depends_on:
       - mysql
     healthcheck:
-      test: ["/bin/bash", "-c", "./bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --list"]
+      test: ["CMD-SHELL","/bin/bash", "-c", "./bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --list"]
   kafka-setup:
     networks:
       ozone-analytics:
@@ -149,7 +149,7 @@ services:
     image: mekomsolutions/ozone-flink-jobs
     ports:
       - "8084:8081"
-    command: standalone-job --job-classname net.mekomsolutions.data.pipelines.streaming.StreamingETLJob --job-id 00000000000000000000000000000000 --properties-file /opt/flink/usrlib/job.properties --sink-url jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME} --sink-username ${ANALYTICS_DB_USER} --sink-password ${ANALYTICS_DB_PASSWORD}
+    command: standalone-job --job-classname  com.ozonehis.data.pipelines.streaming.StreamingETLJob --job-id 00000000000000000000000000000000 --properties-file /opt/flink/usrlib/job.properties --sink-url jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME} --sink-username ${ANALYTICS_DB_USER} --sink-password ${ANALYTICS_DB_PASSWORD}
     depends_on:
        migrate:
          condition: service_completed_successfully

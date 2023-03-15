@@ -28,11 +28,17 @@ The services have been split into multiple files this allows you to start only t
 ### Centralized analytics
 ![Centralized](readme/Centralized.jpg)
 
+### To run
+
+`git clone https://github.com/ozone-his/ozone-analytics`
+
+`cd ozone-analytics/docker `
 
 ### Streaming and flatening pipelines only (without Superset)
+
 In cases where you don't need to start Superset (for example when you will use the Parquet export  job to create Parquet files to later upload onto Minio or S3, or if you want to plug your own BI tool) you can start only the streaming and flatening data pipelines by running:
 
-`$ docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml up -d --build`
+`docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml up -d --build`
 
 Which will start ;
 
@@ -46,7 +52,6 @@ Which will start ;
 * [PostgresSQL](https://www.postgresql.org/ "PostgresSQL") - The sink database where the streaming pipelines output the flattened data. Once the data is flattened, it can be used directly for analytics by Superset or exported to Parquet for external storage or using any other anaytics tool (Tableau, Power BI, Metabase...).
 
 ###  Streaming, flatening pipelines and data visualization (with Superset)
-`cd docker `
 
 To start the complete streaming and flatening suite, including Superset as the BI tool, run:
 

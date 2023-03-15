@@ -5,7 +5,6 @@ services:
       ozone-analytics:
     restart: on-failure
     image: mekomsolutions/ozone-flink-jobs
-
     command: /run.sh
     environment:
       - FLINK_JOB_POSTGRES_USER=${ANALYTICS_DB_USER}
