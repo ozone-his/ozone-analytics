@@ -17,7 +17,7 @@ services:
       test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
     volumes:
       # - ./data/mysql:/var/lib/mysql:rw
-      - mysql-data:/var/lib/mysql:rw
+      - ${MYSQL_DATADIR:-mysql-data}:/var/lib/mysql:rw
       - ./data/openmrs-data/openmrs-demo.sql:/docker-entrypoint-initdb.d/openmrs-demo.sql
   postgresql:
     networks:
