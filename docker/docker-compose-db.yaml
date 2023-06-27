@@ -16,9 +16,9 @@ services:
     healthcheck:
       test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
     volumes:
-      # - ./data/mysql:/var/lib/mysql:rw
       - ${MYSQL_DATADIR:-mysql-data}:/var/lib/mysql:rw
-      - ./data/openmrs-data/openmrs-demo.sql:/docker-entrypoint-initdb.d/openmrs-demo.sql
+      - ./sqls/mysql/:/docker-entrypoint-initdb.d/
+
   postgresql:
     networks:
       ozone-analytics:
@@ -43,25 +43,9 @@ services:
       SUPERSET_DB_PASSWORD: ${SUPERSET_DB_PASSWORD}
     volumes:
       - ${POSTGRES_DATADIR:-postgresql-data}:/var/lib/postgresql/data
-      - "${SQL_SCRIPTS_PATH:-./sqls}/postgresql:/docker-entrypoint-initdb.d"
+      - "${SQL_SCRIPTS_PATH:-./sqls/postgresql}:/docker-entrypoint-initdb.d"
     ports:
       - "5432:5432"
-  migrate:
-    networks:
-      ozone-analytics:
-    restart: on-failure
-    image: mekomsolutions/ozone-flink-jobs
-
-    command: /run.sh
-    depends_on:
-      - postgresql
-    environment:
-      - FLINK_JOB_POSTGRES_USER=${ANALYTICS_DB_USER}
-      - FLINK_JOB_POSTGRES_PASSWORD=${ANALYTICS_DB_PASSWORD}
-      - FLINK_JOB_POSTGRES_URL=jdbc:postgresql://postgresql:5432/analytics
-      - FLINK_JOB_PROPERTIES_BOOTSTRAP_SERVERS=kafka:9092
-    labels: 
-      - kompose.service.group=flink-manager
 
 volumes:
    mysql-data:

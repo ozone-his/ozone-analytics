@@ -66,10 +66,6 @@ This will start the following services:
 
 > NOTE: The streaming jobs may fail for a while during the initial start up as Flink discovers data partitions from Kafka. You can wait for this to sort itself out or you can try to restart the `jobmanager` and `taskmanager` services with `docker compose -f docker-compose-data-pipelines.yaml restart jobmanager taskmanager`
 
-### Demo data
-
-The demo data included with this project is a dump from OpenMRS reference application configured to generate 155 patients and is loaded into MySQL during initialization.
-
 ### Drill-backed analytics server
 
 In cases where you have multiple instances of Ozone deployed in remote locations, you may what to process data onsite with the streaming and flatening pipelines but ship the data to a central repository for analytics. This provides a solution that uses:
@@ -126,3 +122,24 @@ export ANALYTICS_DB_PASSWORD=password
 | Superset  | http://localhost:8088  | admin/password|
 | Minio   | http://localhost:9000   |minioadmin/minioadmin123|
 | Drill  |  http://localhost:8047 | |
+
+
+# Parquet export using an OpenMRS backup
+
+-  Copy the OpenMRS database to `./docker/sqls/mysql`
+-  cd `docker/` and run the following commands: 
+
+Start database services
+```
+docker compose -f docker-compose-db.yaml up -d 
+```
+Batch ETL job
+```
+docker compose -f docker-compose-batch-etl.yaml up
+```
+Parquet export
+```
+export LOCATION_TAG=<location_id>
+docker compose -f docker-compose-export.yaml
+```
+- data folder should be found at `./docker/data/parquet`
