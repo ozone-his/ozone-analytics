@@ -14,7 +14,7 @@ services:
   batch-etl:
     networks:
       ozone-analytics:
-    image: mekomsolutions/ozone-flink-jobs-batch:1.0.0-alpha1
+    image: mekomsolutions/ozone-flink-jobs-batch:1.0.0-alpha2
     depends_on:
       - migrate
     environment:

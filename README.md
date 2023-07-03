@@ -140,6 +140,6 @@ docker compose -f docker-compose-batch-etl.yaml up
 Parquet export
 ```
 export LOCATION_TAG=<location_id>
-docker compose -f docker-compose-export.yaml
+docker compose -f docker-compose-export.yaml up
 ```
 - data folder should be found at `./docker/data/parquet`

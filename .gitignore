@@ -245,10 +245,10 @@ buildNumber.properties
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,eclipse,maven,visualstudiocode,macos
 
-# Keep data folders
-docker/sqls/mysql
-docker/sqls/postgres_restore
-docker/data/parquet
+# Keep data folders clean
+docker/sqls/mysql/*
+docker/sqls/postgres_restore/*
+docker/data/parquet/
 !docker/sqls/mysql/.gitkeep
 !docker/sqls/postgres_restore/.gitkeep
 !docker/data/parquet/.gitkeep
