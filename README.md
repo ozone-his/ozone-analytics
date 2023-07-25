@@ -143,3 +143,23 @@ export LOCATION_TAG=<location_id>
 docker compose -f docker-compose-export.yaml up
 ```
 - data folder should be found at `./docker/data/parquet`
+
+# Parquet export using a production deployment
+
+- set the variable
+```
+export ANALYTICS_DB_HOST=<postgres_host_ip>
+export OPENMRS_DB_HOST=<mysql_host_ip>
+export LOCATION_TAG=<location_id>
+```
+Note: if the host of the database is your localhost use `host.docker.internal`
+
+- Start batch ETL job
+```
+docker compose -f docker-compose-batch-etl.yaml up
+```
+Parquet export
+```
+docker compose -f docker-compose-export.yaml up
+```
+- data folder should be found at `./docker/data/parquet`
