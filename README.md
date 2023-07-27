@@ -124,42 +124,42 @@ export ANALYTICS_DB_PASSWORD=password
 | Drill  |  http://localhost:8047 | |
 
 
-# Parquet export using an OpenMRS backup
+# Parquet export using an OpenMRS database backup
 
--  Copy the OpenMRS database to `./docker/sqls/mysql`
--  cd `docker/` and run the following commands: 
+-  Copy the OpenMRS database dump to `./docker/sqls/mysql`
+-  cd `docker/` and run the following commands
 
-Start database services
+- Start database services
 ```
 docker compose -f docker-compose-db.yaml up -d 
 ```
-Batch ETL job
+- Run the batch ETL job to transform the data
 ```
 docker compose -f docker-compose-batch-etl.yaml up
 ```
-Parquet export
+- Export data in a Parquet format
 ```
 export LOCATION_TAG=<location_id>
 docker compose -f docker-compose-export.yaml up
 ```
-- data folder should be found at `./docker/data/parquet`
+:bulb: data folder should be found at `./docker/data/parquet`
 
-# Parquet export using a production deployment
+# Parquet export against an existing production deployment
 
-- set the variable
+- Set the variables
 ```
 export ANALYTICS_DB_HOST=<postgres_host_ip>
 export OPENMRS_DB_HOST=<mysql_host_ip>
 export LOCATION_TAG=<location_id>
 ```
-Note: if the host of the database is your localhost use `host.docker.internal`
+**Note**: if the host of the database is your localhost use `host.docker.internal`
 
-- Start batch ETL job
+- Run the batch ETL job to transform the data
 ```
 docker compose -f docker-compose-batch-etl.yaml up
 ```
-Parquet export
+- Export data in a Parquet format
 ```
 docker compose -f docker-compose-export.yaml up
 ```
-- data folder should be found at `./docker/data/parquet`
+:bulb: data folder should be found at `./docker/data/parquet`
