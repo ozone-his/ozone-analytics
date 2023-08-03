@@ -88,7 +88,7 @@ To start this stack run;
 | Drill  |  http://localhost:8047 | |
 
 
-# Parquet export using an OpenMRS database backup
+### Parquet export using an OpenMRS database backup
 
 -  Copy the OpenMRS database dump to `./docker/sqls/mysql`
 -  cd `docker/` and run the following commands
@@ -108,7 +108,7 @@ docker compose -f docker-compose-export.yaml up
 ```
 :bulb: data folder should be found at `./docker/data/parquet`
 
-# Parquet export against an existing production deployment
+### Parquet export against an existing production deployment
 
 - Set the variables
 ```
