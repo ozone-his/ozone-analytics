@@ -3,16 +3,18 @@ services:
   parquet-export:
     networks:
       ozone-analytics:
-    image: mekomsolutions/ozone-flink-parquet-export
+    image: mekomsolutions/ozone-flink-parquet-export:1.0.0-alpha1
     environment:
-      JDBC_URL: jdbc:postgresql://postgresql:5432/analytics
-      JDBC_USERNAME: analytics
-      JDBC_PASSWORD: password
-      LOCATION_TAG: location1
+      JDBC_URL: jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME}
+      JDBC_USERNAME: ${ANALYTICS_DB_USER}
+      JDBC_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+      LOCATION_TAG: ${LOCATION_TAG}
       FLINK_CONF_DIR: '/etc/flink'
       JAVA_OPTS: '-XX:MaxRAMPercentage=80.0'
     volumes:
       - ./data/parquet:/parquet
       - ./flink/config/flink-conf.yaml:/etc/flink/flink-conf.yaml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 networks:
   ozone-analytics:
