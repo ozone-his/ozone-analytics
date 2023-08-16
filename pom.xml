@@ -26,7 +26,7 @@
         <version>3.3.0</version>
         <executions>
           <execution>
-            <id>copy-resources</id>
+            <id>Copy Docker resources</id>
             <phase>package</phase>
             <goals>
               <goal>copy-resources</goal>
@@ -40,6 +40,39 @@
               </resources>
             </configuration>
           </execution>
+          <execution>
+          <id>Copy README.md</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/${project.artifactId}-${project.version}</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/</directory>
+                  <includes>
+                  <include>README.md</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+          <execution>
+            <id>Copy readme/ folder</id>
+              <phase>package</phase>
+              <goals>
+                <goal>copy-resources</goal>
+              </goals>
+              <configuration>
+                <outputDirectory>${project.build.directory}/${project.artifactId}-${project.version}/readme</outputDirectory>
+                <resources>
+                  <resource>
+                    <directory>${project.basedir}/readme</directory>
+                  </resource>
+                </resources>
+              </configuration>
+            </execution>
         </executions>
       </plugin>
       <!-- Packaging the project as a installable/deployable file -->

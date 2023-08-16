@@ -252,3 +252,5 @@ docker/data/parquet/
 !docker/sqls/mysql/.gitkeep
 !docker/sqls/postgres_restore/.gitkeep
 !docker/data/parquet/.gitkeep
+data/
+debezium-connect/
