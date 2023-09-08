@@ -121,6 +121,42 @@ To start this stack run;
 
 `docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
 
+### Parquet Export Job
+For cases where you are running remote streaming and flatening data pipelines onsite with no network access (off-the-grid servers) and thus need to ship it to a the central repository (see **Drill-backed analytics server above**), you can run the export job to move data inside of a `./parquet`  folder of this project. This folder can then be uploaded  to the `analytics` bucket on the MinIO server.
+
+`docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml -f docker-compose-export.yaml up parquet-export  --build`
+
+### Usage with external databases
+
+When using this project in production the openmrs database and the analytics will be external to the project meaning you will need to override some environmental variables at runtime.
+| Variable|Description |
+|---|----|
+|CONNECT_MYSQL_HOSTNAME|The project uses Kafka connect to get the OpenMRS changes we need to set this to the source OpenMRS MYSQL host|
+|CONNECT_MYSQL_PORT|This is the port the source OpenMRS MYSQL is listening on|
+|CONNECT_MYSQL_USERNAME|This is the username of a user in the source  OpenMRS MYSQL with the privileges `SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAVE, REPLICATION` |
+|CONNECT_MYSQL_PASSWORD|This is the password of `CONNECT_MYSQL_USERNAME`|
+|ANALYTICS_DB_HOST|This is the host of the analytics sink PostgresSQL database |
+|ANALYTICS_DB_PORT|This is the port on which the analytics sink PostgresSQL database is listening on |
+|ANALYTICS_DB_NAME|This is name of the analytics sink database|
+|ANALYTICS_DB_USER|This is the username for for writing into the analytics sink database|
+|ANALYTICS_DB_PASSWORD|This is the password for `ANALYTICS_DB_PASSWORD`|
+
+example for a source and sink databases listening on the host. The example assumes a Linux host
+
+```
+export CONNECT_MYSQL_HOSTNAME=172.17.0.1 && \
+export CONNECT_MYSQL_PORT=3306 && \
+export CONNECT_MYSQL_USERNAME=root && \
+export CONNECT_MYSQL_PASSWORD=3cY8Kve4lGey && \
+export ANALYTICS_DB_HOST=172.17.0.1 && \
+export ANALYTICS_DB_PORT=5432 && \
+export ANALYTICS_DB_NAME=analytics && \
+export ANALYTICS_DB_USER=analytics && \
+export ANALYTICS_DB_PASSWORD=password
+```
+
+`docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines-external.yaml docker-compose-superset.yaml up -d --build`
+
 ### Services coordinates
 | Service  |   Access| Credentials|
 | ------------ | ------------ |------------ |
