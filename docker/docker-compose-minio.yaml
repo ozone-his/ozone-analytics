@@ -39,18 +39,6 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       DEFAULT_BUCKETS: ${DEFAULT_BUCKETS}
       ANALYTICS_BUCKET: ${ANALYTICS_BUCKET}
-    # entrypoint: >
-    #   /bin/bash -c "
-    #   /usr/bin/mc config host add myminio http://minio:9099 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
-    #   IFS=","
-    #   for v in $DEFAULT_BUCKETS
-    #   do
-    #     /usr/bin/mc mb -p myminio/$${v};
-    #   done
-    #   /usr/bin/mc mb -p myminio/$${ANALYTICS_BUCKET};
-    #   /usr/bin/mc event add myminio/$${ANALYTICS_BUCKET} arn:minio:sqs::_:webhook --event put;
-    #   exit 0;
-    #   "
   minio-webhook:
      networks:
       ozone-analytics:
