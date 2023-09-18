@@ -121,10 +121,6 @@ To start this stack run;
 
 `docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
 
-### Parquet Export Job
-For cases where you are running remote streaming and flatening data pipelines onsite with no network access (off-the-grid servers) and thus need to ship it to a the central repository (see **Drill-backed analytics server above**), you can run the export job to move data inside of a `./parquet`  folder of this project. This folder can then be uploaded  to the `analytics` bucket on the MinIO server.
-
-`docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml -f docker-compose-export.yaml up parquet-export  --build`
 
 ### Usage with external databases
 
@@ -165,6 +161,7 @@ export ANALYTICS_DB_PASSWORD=password
 | Superset  | http://localhost:8088  | admin/password|
 | Minio   | http://localhost:9000   |minioadmin/minioadmin123|
 | Drill  |  http://localhost:8047 | |
+
 
 
 ### Parquet export using an OpenMRS database backup
