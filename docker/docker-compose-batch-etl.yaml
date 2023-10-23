@@ -1,24 +1,12 @@
 version: '3.8'
 services:
-  migrate:
-    networks:
-      ozone-analytics:
-    restart: on-failure
-    image: mekomsolutions/ozone-flink-jobs:1.0.0-alpha1
-    command: /run.sh
-    environment:
-      - FLINK_JOB_POSTGRES_USER=${ANALYTICS_DB_USER}
-      - FLINK_JOB_POSTGRES_PASSWORD=${ANALYTICS_DB_PASSWORD}
-      - FLINK_JOB_POSTGRES_URL=jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME}
-      - FLINK_JOB_PROPERTIES_BOOTSTRAP_SERVERS=kafka:9092
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
   batch-etl:
     networks:
       ozone-analytics:
-    image: mekomsolutions/ozone-flink-jobs-batch:1.0.0-alpha2
+    image: mekomsolutions/ozone-flink-jobs-batch
     depends_on:
-      - migrate
+      analytics-migration:
+        condition: service_completed_successfully
     environment:
       SOURCE_JDBC_URL: jdbc:mysql://${OPENMRS_DB_HOST}:${OPENMRS_DB_PORT}/${OPENMRS_DB_NAME}
       SOURCE_JDBC_USERNAME: root
@@ -29,10 +17,19 @@ services:
       PROPERTIES_FILE: '/opt/flink/usrlib/job.properties'
       FLINK_CONF_DIR: '/etc/flink'
       JAVA_OPTS: '-XX:MaxRAMPercentage=80.0'
+      ANALYTICS_QUERIES_PATH: /analytics/queries
+      ANALYTICS_SOURCE_TABLES_PATH: /analytics/source-tables
+      ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
+      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+      ANALYTICS_DB_HOST: ${ANALYTICS_DB_HOST}
+      ANALYTICS_DB_PORT: ${ANALYTICS_DB_PORT}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./flink/pipelines/job.properties:/opt/flink/usrlib/job.properties
       - ./flink/config/flink-conf.yaml:/etc/flink/flink-conf.yaml
+      - ${ANALYTICS_QUERIES_PATH}:/analytics/queries
+      - ${ANALYTICS_SOURCE_TABLES_PATH}:/analytics/source-tables
 networks:
   ozone-analytics:

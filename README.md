@@ -34,11 +34,42 @@ The services have been split into multiple files this allows you to start only t
 
 `cd ozone-analytics/docker `
 
+### Export environment variables
+```bash
+export DISTRO_PATH=<path_to_ozonepro_distro>
+```
+
+``` bash
+export ANALYTICS_QUERIES_PATH=$DISTRO_PATH/analytics_config/dsl/flattening/queries/;
+export ANALYTICS_DESTINATION_TABLES_MIGRATIONS_PATH=$DISTRO_PATH/analytics_config/liquibase/analytics/
+
+export ANALYTICS_DB_HOST=gateway.docker.internal; \
+export ANALYTICS_DB_PORT=5432; \
+export CONNECT_MYSQL_HOSTNAME=gateway.docker.internal; \
+export CONNECT_MYSQL_PORT=3307; \
+export CONNECT_MYSQL_USER=root; \                       
+export CONNECT_MYSQL_PASSWORD=3cY8Kve4lGey; \
+export CONNECT_ODOO_DB_HOSTNAME=gateway.docker.internal; \
+export CONNECT_ODOO_DB_PORT=5432; \          
+export CONNECT_ODOO_DB_NAME=odoo; \                       
+export CONNECT_ODOO_DB_USER=postgres; \
+export CONNECT_ODOO_DB_PASSWORD=password\
+
+export EXPORT_DESTINATION_TABLES_PATH=$DISTRO_PATH/analytics_config/dsl/export/tables/;\
+export EXPORT_SOURCE_QUERIES_PATH=$DISTRO_PATH/analytics_config/dsl/export/queries;\
+export EXPORT_OUTPUT_PATH=$(pwd)/data/parquet/;\                                        
+export EXPORT_OUTPUT_TAG=h1;
+```
+
+**Note**: The gateway.docker.internal is a special DNS name that resolves to the host machine from within containers. It is only available for Mac and Windows. For Linux, use the docker host IP by default 172.17.0.1
+
 ### Streaming and flatening pipelines only (without Superset)
 
 In cases where you don't need to start Superset (for example when you will use the Parquet export job to create Parquet files to later upload onto Minio or S3, or if you want to plug your own BI tool) you can start only the streaming and flatening data pipelines by running:
 
-`docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml up -d --build`
+```bash
+docker compose -f docker-compose-migration.yaml -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml up -d --build
+```
 
 Which will start ;
 
@@ -55,7 +86,9 @@ Which will start ;
 
 To start the complete streaming and flatening suite, including Superset as the BI tool, run:
 
-`docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml -f docker-compose-superset.yaml up -d --build`
+```bash
+docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines.yaml -f docker-compose-superset.yaml up -d --build
+```
 
 This will start the following services:
 
@@ -65,6 +98,15 @@ This will start the following services:
 
 
 > NOTE: The streaming jobs may fail for a while during the initial start up as Flink discovers data partitions from Kafka. You can wait for this to sort itself out or you can try to restart the `jobmanager` and `taskmanager` services with `docker compose -f docker-compose-data-pipelines.yaml restart jobmanager taskmanager`
+
+### Streaming and flatening pipelines only against an existing deployment
+When you have an existing deployment of Ozone and you want to run the streaming and flatening pipelines against it, you can use the following command:
+
+```bash
+docker compose -f docker-compose-data-pipelines-external.yaml -f docker-compose-migration.yaml up -d
+```
+
+
 
 ### Drill-backed analytics server
 
@@ -94,36 +136,27 @@ To start this stack run;
 -  cd `docker/` and run the following commands
 
 - Start database services
-```
+```bash
 docker compose -f docker-compose-db.yaml up -d 
 ```
 - Run the batch ETL job to transform the data
-```
-docker compose -f docker-compose-batch-etl.yaml up
+```bash
+docker compose -f docker-compose-migration.yaml -f docker-compose-batch-etl.yaml up
 ```
 - Export data in a Parquet format
-```
-export LOCATION_TAG=<location_id>
+```bash
 docker compose -f docker-compose-export.yaml up
 ```
 :bulb: data folder should be found at `./docker/data/parquet`
 
 ### Parquet export against an existing production deployment
 
-- Set the variables
-```
-export ANALYTICS_DB_HOST=<postgres_host_ip>
-export OPENMRS_DB_HOST=<mysql_host_ip>
-export LOCATION_TAG=<location_id>
-```
-**Note**: if the host of the database is your localhost use `host.docker.internal`
-
 - Run the batch ETL job to transform the data
-```
-docker compose -f docker-compose-batch-etl.yaml up
+```bash
+docker compose -f docker-compose-migration.yaml -f docker-compose-batch-etl.yaml up
 ```
 - Export data in a Parquet format
-```
+```bash
 docker compose -f docker-compose-export.yaml up
 ```
 :bulb: data folder should be found at `./docker/data/parquet`
