@@ -6,13 +6,13 @@ services:
     restart: on-failure
     image: debezium/zookeeper:${DEBEZIUM_VERSION}
     ports:
-     - 2181:2181
-     - 2888:2888
-     - 3888:3888
+      - 2181:2181
+      - 2888:2888
+      - 3888:3888
     volumes:
       - zookeeper-data:/zookeeper/data
       - zookeeper-txns:/zookeeper/txns
-    labels: 
+    labels:
       kompose.service.type: clusterip
   kafka:
     networks:
@@ -20,18 +20,27 @@ services:
     restart: on-failure
     image: debezium/kafka:${DEBEZIUM_VERSION}
     ports:
-     - 9092:9092
+      - 9092:9092
 
     environment:
-     - CLUSTER_ID=5Yr1SIgYQz-b-dgRabWx4g
-     - BROKER_ID=1
-     - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - CLUSTER_ID=5Yr1SIgYQz-b-dgRabWx4g
+      - BROKER_ID=1
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_LISTENERS=PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093,PLAINTEXT_HOST://0.0.0.0:29092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://kafka:29092
     volumes:
       - kafka-data:/kafka/data
     depends_on:
       - mysql
     healthcheck:
-      test: ["CMD-SHELL","/bin/bash", "-c", "./bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --list"]
+      test:
+        [
+          "CMD-SHELL",
+          "/bin/bash",
+          "-c",
+          "./bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --list"
+        ]
   kafka-setup:
     networks:
       ozone-analytics:
@@ -45,50 +54,56 @@ services:
         for topic in $${topics[@]}
           do
             echo "Creating topic $$topic..."
-            ./bin/kafka-topics.sh --create --topic openmrs.openmrs.$$topic --partitions 1 --replication-factor 1 --if-not-exists --bootstrap-server kafka:9092
-            ./bin/kafka-configs.sh --bootstrap-server=kafka:9092  --entity-type topics --entity-name openmrs.openmrs.$$topic --alter --add-config retention.ms=31556736000
+            ./bin/kafka-topics.sh --create --topic $$topic --partitions 1 --replication-factor 1 --if-not-exists --bootstrap-server kafka:9092
+            ./bin/kafka-configs.sh --bootstrap-server=kafka:9092  --entity-type topics --entity-name $$topic --alter --add-config retention.ms=31556736000
         done
     environment:
-     - TOPICS=${TOPICS}
+     - TOPICS=${CREATE_TOPICS}
     depends_on:
       - kafka
+
   connect:
     networks:
       ozone-analytics:
     restart: on-failure
     image: debezium/connect:${DEBEZIUM_VERSION}
     ports:
-     - 8083:8083
+      - 8083:8083
     depends_on:
-      - kafka-setup
       - mysql
     environment:
-     - BOOTSTRAP_SERVERS=kafka:9092
-     - GROUP_ID=1
-     - CONFIG_STORAGE_TOPIC=my_connect_configs
-     - OFFSET_STORAGE_TOPIC=my_connect_offsets
-     - STATUS_STORAGE_TOPIC=my_connect_statuses
-     - CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE=false
-     - CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE=false
-     - CONNECT_CONFIG_PROVIDERS=file
-     - CONNECT_CONFIG_PROVIDERS_FILE_CLASS=org.apache.kafka.common.config.provider.FileConfigProvider
-     - CONNECT_MYSQL_HOSTNAME=${CONNECT_MYSQL_HOSTNAME:-mysql}
-     - CONNECT_MYSQL_USERNAME=${CONNECT_MYSQL_USERNAME:-root}
-     - CONNECT_MYSQL_PASSWORD=${CONNECT_MYSQL_PASSWORD:-${MYSQL_ROOT_PASSWORD}}
-     - CONNECT_MYSQL_PORT=${CONNECT_MYSQL_PORT:-${CONNECT_MYSQL_PORT}}
-     - CONNECT_MYSQL_SERVER_ID=${CONNECT_MYSQL_SERVER_ID:-184054}
-     - CONNECT_MYSQL_SERVER_NAME=openmrs
-     - CONNECT_MYSQL_INCLUDE_LIST=openmrs
-     - CONNECT_TABLE_EXCLUDE_LIST=openmrs.audit_log
-     - CONNECT_MYSQL_HISTROY_TOPIC=dbhistory.openmrs
-     - CONNECT_MYSQL_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - BOOTSTRAP_SERVERS=kafka:9092
+      - GROUP_ID=1
+      - CONFIG_STORAGE_TOPIC=my_connect_configs
+      - OFFSET_STORAGE_TOPIC=my_connect_offsets
+      - STATUS_STORAGE_TOPIC=my_connect_statuses
+      - CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE=false
+      - CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE=false
+      - CONNECT_CONFIG_PROVIDERS=file
+      - CONNECT_CONFIG_PROVIDERS_FILE_CLASS=org.apache.kafka.common.config.provider.FileConfigProvider
+      - CONNECT_MYSQL_HOSTNAME=${CONNECT_MYSQL_HOSTNAME:-mysql}
+      - CONNECT_MYSQL_USERNAME=${CONNECT_MYSQL_USERNAME:-root}
+      - CONNECT_MYSQL_PASSWORD=${CONNECT_MYSQL_PASSWORD:-${MYSQL_ROOT_PASSWORD}}
+      - CONNECT_MYSQL_PORT=${CONNECT_MYSQL_PORT:-${CONNECT_MYSQL_PORT}}
+      - CONNECT_MYSQL_SERVER_ID=${CONNECT_MYSQL_SERVER_ID:-184054}
+      - CONNECT_MYSQL_SERVER_NAME=openmrs
+      - CONNECT_MYSQL_INCLUDE_LIST=openmrs
+      - CONNECT_TABLE_EXCLUDE_LIST=openmrs.audit_log
+      - CONNECT_MYSQL_HISTROY_TOPIC=dbhistory.openmrs
+      - CONNECT_MYSQL_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - CONNECT_ODOO_DB_HOSTNAME=${CONNECT_ODOO_DB_HOSTNAME:-postgresql}
+      - CONNECT_ODOO_DB_USERNAME=${CONNECT_ODOO_DB_USERNAME:-${POSTGRES_USER}}
+      - CONNECT_ODOO_DB_PASSWORD=${CONNECT_ODOO_DB_PASSWORD:-${POSTGRES_PASSWORD}}
+      - CONNECT_ODOO_DB_PORT=${CONNECT_ODOO_DB_PORT:-5432}
+      - CONNECT_ODOO_DB_SERVER_NAME=odoo
+      - CONNECT_ODOO_DB_INCLUDE_LIST=odoo
     volumes:
       - ./debezium-connect/jars/TimestampConverter-1.2.4-SNAPSHOT.jar:/kafka/connect/debezium-connector-mysql/TimestampConverter-1.2.4-SNAPSHOT.jar
   connect-setup:
     networks:
       ozone-analytics:
     restart: on-failure
-    build: ./setup-connect
+    image: mekomsolutions/ozone-analytics-setup-connect
     depends_on:
       - postgresql
       - mysql
@@ -97,51 +112,12 @@ services:
       - connect
     environment:
       - CONNECT_HOST=connect
-      - ANALYTICS_DB_HOST=${ANALYTICS_DB_HOST}
       - SOURCE_DB_HOST=${CONNECT_MYSQL_HOSTNAME}
+      - SOURCE_DB_PORT=${CONNECT_MYSQL_PORT}
+      - ODOO_DB_HOST=${ODOO_DB_HOST:-${CONNECT_ODOO_DB_HOSTNAME}}
+      - ODOO_DB_PORT=${ODOO_DB_PORT:-${CONNECT_ODOO_DB_PORT}}
       - FLINK_JOBMANAGER_HOST=jobmanager
-  kowl:
-    networks:
-      ozone-analytics:
-    image: quay.io/cloudhut/kowl:master
-    container_name: "kowl"
-    restart: on-failure
-    entrypoint: /bin/sh
-    command: -c "echo \"$$KOWL_CONFIG_FILE\" > /tmp/config.yml; /app/kowl"
-    ports:
-      - "8282:8080"
-    environment:
-      CONFIG_FILEPATH: /tmp/config.yml
-      KOWL_CONFIG_FILE: |
-        kafka:
-          brokers: ["kafka:9092"]
-        connect:
-          enabled: true
-          clusters:
-            - name: openmrs
-              url: http://connect:8083
-    depends_on:
-      - "kafka"
-      - "connect"
-    labels: 
-      kompose.service.type: clusterip
 
-  migrate:
-    networks:
-      ozone-analytics:
-    restart: on-failure
-    image: mekomsolutions/ozone-flink-jobs
-
-    command: /run.sh
-    depends_on:
-      - postgresql
-    environment:
-      - FLINK_JOB_POSTGRES_USER=${ANALYTICS_DB_USER}
-      - FLINK_JOB_POSTGRES_PASSWORD=${ANALYTICS_DB_PASSWORD}
-      - FLINK_JOB_POSTGRES_URL=jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME}
-      - FLINK_JOB_PROPERTIES_BOOTSTRAP_SERVERS=kafka:9092
-    labels: 
-      - kompose.service.group=flink-manager
   jobmanager:
     networks:
       ozone-analytics:
@@ -151,16 +127,18 @@ services:
       - "8084:8081"
     command: standalone-job --job-classname  com.ozonehis.data.pipelines.streaming.StreamingETLJob --job-id 00000000000000000000000000000000 --properties-file /opt/flink/usrlib/job.properties --sink-url jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME} --sink-username ${ANALYTICS_DB_USER} --sink-password ${ANALYTICS_DB_PASSWORD}
     depends_on:
-       migrate:
+      odoo-replica-identity-migration:
          condition: service_completed_successfully
-       zookeeper:
-         condition: service_started
-       kafka:
-         condition: service_started
-       kafka-setup:
+      analytics-migration:
+        condition: service_completed_successfully
+      zookeeper:
+        condition: service_started
+      kafka:
+        condition: service_started
+      postgresql:
+        condition: service_started
+      kafka-setup:
          condition: service_completed_successfully
-       postgresql:
-         condition: service_started
     environment:
       - |
         FLINK_PROPERTIES=
@@ -184,10 +162,20 @@ services:
       - FLINK_JOB_POSTGRES_PASSWORD=password
       - FLINK_JOB_POSTGRES_URL=jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME}
       - FLINK_JOB_PROPERTIES_BOOTSTRAP_SERVERS=kafka:9092
+      - ANALYTICS_SOURCE_TABLES_PATH=/analytics/source-tables
+      - ANALYTICS_QUERIES_PATH=/analytics/queries
+      - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
+      - ANALYTICS_DB_USER=${ANALYTICS_DB_USER}
+      - ANALYTICS_DB_PASSWORD=${ANALYTICS_DB_PASSWORD}
+      - ANALYTICS_DB_HOST=${ANALYTICS_DB_HOST}
+      - ANALYTICS_DB_PORT=${ANALYTICS_DB_PORT}
+      - ANALYTICS_KAFKA_URL=${ANALYTICS_KAFKA_URL}
     volumes:
       - flink-shared-data:/tmp
       - ./flink/pipelines/job.properties:/opt/flink/usrlib/job.properties
       - ./data:/data
+      - ${ANALYTICS_SOURCE_TABLES_PATH}:/analytics/source-tables
+      - ${ANALYTICS_QUERIES_PATH}:/analytics/queries
   taskmanager:
     networks:
       ozone-analytics:
@@ -219,15 +207,21 @@ services:
       - ./flink/pipelines/job.properties:/opt/flink/usrlib/job.properties
       - ./data:/data
     restart: on-failure
+  odoo-replica-identity-migration:
+    depends_on:
+      - postgresql
+  analytics-migration:
+    depends_on:
+      - postgresql
 volumes:
-   mysql-data:
-   flink-shared-data: ~
-   postgresql-data: ~
-   redis: ~
-   zookeeper-data: ~
-   kafka-data: ~
-   zookeeper-txns: ~
-   consul-data: ~
-   openmrs-referenceapplication-data: ~
+  mysql-data:
+  flink-shared-data: ~
+  postgresql-data: ~
+  redis: ~
+  zookeeper-data: ~
+  kafka-data: ~
+  zookeeper-txns: ~
+  consul-data: ~
+  openmrs-referenceapplication-data: ~
 networks:
   ozone-analytics:

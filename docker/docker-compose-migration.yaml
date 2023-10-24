@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  odoo-replica-identity-migration:
+    image: liquibase/liquibase
+    networks:
+      ozone-analytics:
+    restart: on-failure
+    volumes:
+      - ./liquibase/odoo/:/liquibase/changelog/
+    command: update -Dtables='databasechangelog,account_account' --username=${CONNECT_ODOO_DB_USER} --password=${CONNECT_ODOO_DB_PASSWORD} --changeLogFile=${CHANGELOG_FILE} --url=jdbc:postgresql://${CONNECT_ODOO_DB_HOSTNAME}:${CONNECT_ODOO_DB_PORT}/${CONNECT_ODOO_DB_NAME}
+    environment:
+      - INSTALL_POSTGRESQL='true'
+      - TABLES=${ODOO_ANALYTICS_TABLES}
+  analytics-migration:
+    image: liquibase/liquibase
+    networks:
+      ozone-analytics:
+    restart: on-failure
+    volumes:
+      - ${ANALYTICS_DESTINATION_TABLES_MIGRATIONS_PATH:-analytics-migrations}:/liquibase/changelog/
+    command: update --username=${ANALYTICS_DB_USER} --password=${ANALYTICS_DB_PASSWORD} --changeLogFile=${CHANGELOG_FILE} --url=jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME}
+    environment:
+      - INSTALL_POSTGRESQL='true'
+networks:
+  ozone-analytics:

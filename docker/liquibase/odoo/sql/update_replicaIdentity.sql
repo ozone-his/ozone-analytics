@@ -1,0 +1,1 @@
+SELECT replicaIdentity(string_to_array('${odooanalyticstables}', ',')) s;
