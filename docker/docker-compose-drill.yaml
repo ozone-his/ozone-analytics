@@ -3,7 +3,7 @@ services:
   drill:
     networks:
       ozone-analytics:
-    image: apache/drill:latest
+    image: apache/drill:1.21.1-openjdk-17
     ports:
       - "8047:8047"
     stdin_open: true
