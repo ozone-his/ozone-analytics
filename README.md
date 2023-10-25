@@ -40,6 +40,7 @@ export DISTRO_PATH=<path_to_ozonepro_distro>
 ```
 
 ``` bash
+export ANALYTICS_SOURCE_TABLES_PATH=$DISTRO_PATH/analytics_config/dsl/flattening/tables/;
 export ANALYTICS_QUERIES_PATH=$DISTRO_PATH/analytics_config/dsl/flattening/queries/;
 export ANALYTICS_DESTINATION_TABLES_MIGRATIONS_PATH=$DISTRO_PATH/analytics_config/liquibase/analytics/
 
