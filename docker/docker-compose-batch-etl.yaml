@@ -3,7 +3,7 @@ services:
   batch-etl:
     networks:
       ozone-analytics:
-    image: mekomsolutions/ozone-flink-jobs-batch:2.1.0
+    image: mekomsolutions/ozone-flink-jobs-batch
     depends_on:
       analytics-migration:
         condition: service_completed_successfully

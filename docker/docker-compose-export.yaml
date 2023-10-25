@@ -3,7 +3,7 @@ services:
   parquet-export:
     networks:
       ozone-analytics:
-    image: mekomsolutions/ozone-flink-parquet-export:2.1.0
+    image: mekomsolutions/ozone-flink-parquet-export
     environment:
       JDBC_URL: jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME}
       JDBC_USERNAME: ${ANALYTICS_DB_USER}
