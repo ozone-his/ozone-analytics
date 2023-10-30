@@ -28,10 +28,10 @@ services:
       - "traefik.http.routers.minio.middlewares=superset-redirect-web-secure"
       - "traefik.http.services.minio.loadbalancer.server.port=9000"
 
-  createbuckets:
+  minio-buckets:
     networks:
       ozone-analytics:
-    build: ./createbuckets
+    build: ./minio-buckets
     depends_on:
       - minio
     environment:
