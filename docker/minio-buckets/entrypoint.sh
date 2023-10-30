@@ -5,6 +5,6 @@ for v in $DEFAULT_BUCKETS
 do
 /usr/bin/mc mb -p myminio/$v
 done
-/usr/bin/mc mb -p myminio/${ANALYTICS_BUCKET}
-/usr/bin/mc  event add -p myminio/${ANALYTICS_BUCKET} arn:minio:sqs::_:webhook --event put
+/usr/bin/mc mb -p myminio/analytics
+/usr/bin/mc  event add -p myminio/analytics arn:minio:sqs::_:webhook --event put
 exit 0;

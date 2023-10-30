@@ -38,7 +38,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       DEFAULT_BUCKETS: ${DEFAULT_BUCKETS}
-      ANALYTICS_BUCKET: ${ANALYTICS_BUCKET}
+      ANALYTICS_BUCKET: analytics
   minio-webhook:
      networks:
       ozone-analytics:
@@ -46,7 +46,7 @@ services:
      environment:
        ACCESS_KEY: ${MINIO_ROOT_USER}
        ACCESS_SECRET: ${MINIO_ROOT_PASSWORD}
-       DATA_BUCKET: ${ANALYTICS_BUCKET}
+       DATA_BUCKET: analytics
 
 
 volumes:
