@@ -38,5 +38,6 @@ curl --fail -i -X PUT -H "Accept:application/json" -H "Content-Type:application/
                "timestampConverter.format.time": "HH:mm:ss",
                "timestampConverter.format.date": "YYYY-MM-dd",
                "timestampConverter.format.datetime": "yyyy-MM-dd HH:mm:ss",
-               "timestampConverter.debug": "false"
+               "timestampConverter.debug": "false",
+               "snapshot.mode": "when_needed"
      }'

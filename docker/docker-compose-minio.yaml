@@ -14,7 +14,7 @@ services:
       MINIO_NOTIFY_WEBHOOK_ENABLE: on
       MINIO_NOTIFY_WEBHOOK_ENDPOINT: http://minio-webhook:3000
     volumes:
-      - storage-minio:/data
+      - ${MINIO_DATA_PATH:-storage-minio}:/data
     command: server --address ":9099" --console-address ":9000" /data
     restart: unless-stopped
     labels:
@@ -28,23 +28,17 @@ services:
       - "traefik.http.routers.minio.middlewares=superset-redirect-web-secure"
       - "traefik.http.services.minio.loadbalancer.server.port=9000"
 
-  createbuckets:
+  minio-buckets:
     networks:
       ozone-analytics:
-    image: minio/mc:RELEASE.2023-10-24T21-42-22Z
+    build: ./minio-buckets
     depends_on:
       - minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      DEFAULT_BUCKET: ${BUCKET}
-    entrypoint: >
-      /bin/sh -c "
-      /usr/bin/mc config host add myminio http://minio:9099 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
-      /usr/bin/mc mb myminio/$${DEFAULT_BUCKET};
-      /usr/bin/mc event add myminio/$${DEFAULT_BUCKET} arn:minio:sqs::_:webhook --event put;
-      exit 0;
-      "
+      DEFAULT_BUCKETS: ${DEFAULT_BUCKETS}
+      ANALYTICS_BUCKET: analytics
   minio-webhook:
      networks:
       ozone-analytics:
@@ -52,7 +46,7 @@ services:
      environment:
        ACCESS_KEY: ${MINIO_ROOT_USER}
        ACCESS_SECRET: ${MINIO_ROOT_PASSWORD}
-       DATA_BUCKET: ${BUCKET}
+       DATA_BUCKET: analytics
 
 
 volumes:

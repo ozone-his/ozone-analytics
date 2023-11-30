@@ -121,17 +121,52 @@ To start this stack run;
 
 `docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
 
-### Services coordinates
-| Service  |   Access| Credentials|
-| ------------ | ------------ |------------ |
-| Kowl  |  http://localhost:8282 | |
-| Flink  |  http://localhost:8084 | |
-| Superset  | http://localhost:8088  | admin/password|
-| Minio   | http://localhost:9000   |minioadmin/minioadmin123|
-| Drill  |  http://localhost:8047 | |
 
+### Usage with external databases
+To Simpify the setup of the project we have included OpenMRS and Analtics databases for easy testing, in production the OpenMRS and Analytics databases will be external to the project. To use external databases you need to set the following environment variables:
+| Variable|Description |
+|---|----|
+|CONNECT_MYSQL_HOSTNAME|The project uses Kafka connect to get the OpenMRS changes we need to set this to the source OpenMRS MySQL host|
+|CONNECT_MYSQL_PORT|This is the port the source OpenMRS MySQL is listening on|
+|CONNECT_MYSQL_USERNAME|This is the username of a user in the source  OpenMRS MySQL with the privileges `SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAVE, REPLICATION` |
+|CONNECT_MYSQL_PASSWORD|This is the password of `CONNECT_MYSQL_USERNAME`|
+|ANALYTICS_DB_HOST|This is the host of the analytics sink PostgreSQL database |
+|ANALYTICS_DB_PORT|This is the port on which the analytics sink PostgreSQL database is listening on |
+|ANALYTICS_DB_NAME|This is the name of the analytics sink database|
+|ANALYTICS_DB_USER|This is the username for  writing into the analytics sink database|
+|ANALYTICS_DB_PASSWORD|This is the password for `ANALYTICS_DB_PASSWORD`|
 
-### Parquet export using an OpenMRS database backup
+example for a source and sink databases listening on the current host. The example assumes a Linux host
+
+```
+export CONNECT_MYSQL_HOSTNAME=172.17.0.1 && \
+export CONNECT_MYSQL_PORT=3306 && \
+export CONNECT_MYSQL_USERNAME=root && \
+export CONNECT_MYSQL_PASSWORD=3cY8Kve4lGey && \
+export ANALYTICS_DB_HOST=172.17.0.1 && \
+export ANALYTICS_DB_PORT=5432 && \
+export ANALYTICS_DB_NAME=analytics && \
+export ANALYTICS_DB_USER=analytics && \
+export ANALYTICS_DB_PASSWORD=password
+```
+
+`docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines-external.yaml docker-compose-superset.yaml up -d --build`
+
+**Note**: We still need the `docker-compose-db.yaml` file as it will start the PostgreSQL database for Superset if you don't need Superset you can ignore `docker-compose-db.yaml` and `docker-compose-superset.yaml`
+
+### Drill-backed analytics server
+
+In cases where you have multiple instances of Ozone deployed in remote locations, you may what to process data onsite with the streaming and flatening pipelines but ship the data to a central repository for analytics. This provides a solution that uses:
+* [Minio](https://min.io/ "Minio") - An S3 compatible object storage server.
+* [Drill](https://drill.apache.org/ "Drill") - A Schema-free SQL Query Engine for Hadoop, NoSQL and Cloud Storage.
+* [Superset](https://superset.apache.org/ "Superset") - Data exploration and data visualization tool.
+* [Superset Worker](https://superset.apache.org/docs/intro "Superset Worker") - Run Superset background tasks.
+
+To start this stack run;
+
+`docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
+
+#### Parquet export using an OpenMRS database backup
 
 -  Copy the OpenMRS database dump to `./docker/sqls/mysql`
 -  cd `docker/` and run the following commands
@@ -150,7 +185,7 @@ docker compose -f docker-compose-export.yaml up
 ```
 :bulb: data folder should be found at `./docker/data/parquet`
 
-### Parquet export against an existing production deployment
+#### Parquet export against an existing production deployment
 
 - Run the batch ETL job to transform the data
 ```bash
@@ -161,3 +196,13 @@ docker compose -f docker-compose-migration.yaml -f docker-compose-batch-etl.yaml
 docker compose -f docker-compose-export.yaml up
 ```
 :bulb: data folder should be found at `./docker/data/parquet`
+
+### Services coordinates
+| Service  |   Access| Credentials|
+| ------------ | ------------ |------------ |
+| Kowl  |  http://localhost:8282 | |
+| Flink  |  http://localhost:8084 | |
+| Superset  | http://localhost:8088  | admin/password|
+| Minio   | http://localhost:9000   |minioadmin/minioadmin123|
+| Drill  |  http://localhost:8047 | |
+

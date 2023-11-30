@@ -2,7 +2,7 @@ x-superset-volumes: &superset-volumes
   - ./superset/docker:/app/docker
   - ./superset/docker/pythonpath:/app/pythonpath
   - ./superset/config/datasources:/app/datasources
-  - superset_home:/app/superset_home
+  - ${SUPERSET_HOME:-superset_home}:/app/superset_home
 x-superset-environment: &superset-environment
   - DATABASE_HOST=${POSTGRES_DB_HOST}
   - DATABASE_DB=${SUPERSET_DB}
