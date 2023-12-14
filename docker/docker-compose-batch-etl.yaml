@@ -8,22 +8,25 @@ services:
       analytics-migration:
         condition: service_completed_successfully
     environment:
-      SOURCE_JDBC_URL: jdbc:mysql://${OPENMRS_DB_HOST}:${OPENMRS_DB_PORT}/${OPENMRS_DB_NAME}
-      SOURCE_JDBC_USERNAME: root
-      SOURCE_JDBC_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      SINK_JDBC_URL: jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME}
-      SINK_JDBC_USERNAME: ${ANALYTICS_DB_USER}
-      SINK_JDBC_PASSWORD: ${ANALYTICS_DB_PASSWORD}
-      PROPERTIES_FILE: '/opt/flink/usrlib/job.properties'
-      FLINK_CONF_DIR: '/etc/flink'
-      JAVA_OPTS: '-XX:MaxRAMPercentage=80.0'
-      ANALYTICS_QUERIES_PATH: /analytics/queries
-      ANALYTICS_SOURCE_TABLES_PATH: /analytics/source-tables
-      ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
-      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
-      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
-      ANALYTICS_DB_HOST: ${ANALYTICS_DB_HOST}
-      ANALYTICS_DB_PORT: ${ANALYTICS_DB_PORT}
+      - ANALYTICS_SOURCE_TABLES_PATH=/analytics/source-tables
+      - ANALYTICS_QUERIES_PATH=/analytics/queries
+      - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
+      - ANALYTICS_DB_USER=${ANALYTICS_DB_USER}
+      - ANALYTICS_DB_PASSWORD=${ANALYTICS_DB_PASSWORD}
+      - ANALYTICS_DB_HOST=${ANALYTICS_DB_HOST}
+      - ANALYTICS_DB_PORT=${ANALYTICS_DB_PORT}
+      - ANALYTICS_KAFKA_URL=${ANALYTICS_KAFKA_URL}
+      - OPENMRS_DB_NAME=${OPENMRS_DB_NAME}
+      - OPENMRS_DB_USER=${OPENMRS_DB_USER}
+      - OPENMRS_DB_PASSWORD=${OPENMRS_DB_PASSWORD}
+      - OPENMRS_DB_HOST=${OPENMRS_DB_HOST}
+      - OPENMRS_DB_PORT=${OPENMRS_DB_PORT}
+      - ODOO_DB_NAME=${ODOO_DB_NAME:-odoo}
+      - ODOO_DB_USER=${ODOO_DB_USER:-postgres}
+      - ODOO_DB_PASSWORD=${ODOO_DB_PASSWORD:-password}
+      - ODOO_DB_HOST=${ODOO_DB_HOST:-postgresql}
+      - ODOO_DB_PORT=${ODOO_DB_PORT:-5432}
+      - ANALYTICS_CONFIG_FILE_PATH=/analytics/config.yaml
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -31,5 +34,6 @@ services:
       - ./flink/config/flink-conf.yaml:/etc/flink/flink-conf.yaml
       - ${ANALYTICS_QUERIES_PATH}:/analytics/queries
       - ${ANALYTICS_SOURCE_TABLES_PATH}:/analytics/source-tables
+      - ${ANALYTICS_CONFIG_FILE_PATH}:/analytics/config.yaml
 networks:
   ozone-analytics:

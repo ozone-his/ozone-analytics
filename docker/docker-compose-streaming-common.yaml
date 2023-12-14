@@ -6,22 +6,22 @@ services:
     restart: on-failure
     image: debezium/zookeeper:${DEBEZIUM_VERSION}
     ports:
-      - 2181:2181
-      - 2888:2888
-      - 3888:3888
+     - 2181:2181
+     - 2888:2888
+     - 3888:3888
     volumes:
       - zookeeper-data:/zookeeper/data
       - zookeeper-txns:/zookeeper/txns
-    labels:
+    labels: 
       kompose.service.type: clusterip
   kafka:
-    networks:
-      ozone-analytics:
     restart: on-failure
     image: debezium/kafka:${DEBEZIUM_VERSION}
+    networks:
+      ozone-analytics:
     ports:
       - 9092:9092
-
+      - 29092:29092
     environment:
       - CLUSTER_ID=5Yr1SIgYQz-b-dgRabWx4g
       - BROKER_ID=1
@@ -31,8 +31,6 @@ services:
       - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://kafka:29092
     volumes:
       - kafka-data:/kafka/data
-    depends_on:
-      - mysql
     healthcheck:
       test:
         [
@@ -61,16 +59,15 @@ services:
      - TOPICS=${CREATE_TOPICS}
     depends_on:
       - kafka
-
   connect:
-    networks:
-      ozone-analytics:
     restart: on-failure
     image: debezium/connect:${DEBEZIUM_VERSION}
+    networks:
+      ozone-analytics:
     ports:
-      - 8083:8083
-    depends_on:
-      - mysql
+      - 8383:8083
+    volumes:
+      - ./debezium-connect/jars/TimestampConverter-1.2.4-SNAPSHOT.jar:/kafka/connect/debezium-connector-mysql/TimestampConverter-1.2.4-SNAPSHOT.jar
     environment:
       - BOOTSTRAP_SERVERS=kafka:9092
       - GROUP_ID=1
@@ -83,9 +80,9 @@ services:
       - CONNECT_CONFIG_PROVIDERS_FILE_CLASS=org.apache.kafka.common.config.provider.FileConfigProvider
       - CONNECT_MYSQL_HOSTNAME=${CONNECT_MYSQL_HOSTNAME:-mysql}
       - CONNECT_MYSQL_USERNAME=${CONNECT_MYSQL_USERNAME:-root}
-      - CONNECT_MYSQL_PASSWORD=${CONNECT_MYSQL_PASSWORD:-${MYSQL_ROOT_PASSWORD}}
+      - CONNECT_MYSQL_PASSWORD=${CONNECT_MYSQL_PASSWORD:-${CONNECT_MYSQL_PASSWORD}}
       - CONNECT_MYSQL_PORT=${CONNECT_MYSQL_PORT:-${CONNECT_MYSQL_PORT}}
-      - CONNECT_MYSQL_SERVER_ID=${CONNECT_MYSQL_SERVER_ID:-184054}
+      - CONNECT_MYSQL_SERVER_ID=37991
       - CONNECT_MYSQL_SERVER_NAME=openmrs
       - CONNECT_MYSQL_INCLUDE_LIST=openmrs
       - CONNECT_TABLE_EXCLUDE_LIST=openmrs.audit_log
@@ -97,18 +94,13 @@ services:
       - CONNECT_ODOO_DB_PORT=${CONNECT_ODOO_DB_PORT:-5432}
       - CONNECT_ODOO_DB_SERVER_NAME=odoo
       - CONNECT_ODOO_DB_INCLUDE_LIST=odoo
-    volumes:
-      - ./debezium-connect/jars/TimestampConverter-1.2.4-SNAPSHOT.jar:/kafka/connect/debezium-connector-mysql/TimestampConverter-1.2.4-SNAPSHOT.jar
+
   connect-setup:
-    networks:
-      ozone-analytics:
     restart: on-failure
     image: mekomsolutions/ozone-analytics-setup-connect
+    networks:
+      ozone-analytics:
     depends_on:
-      - postgresql
-      - mysql
-      - jobmanager
-      - taskmanager
       - connect
     environment:
       - CONNECT_HOST=connect
@@ -117,7 +109,6 @@ services:
       - ODOO_DB_HOST=${ODOO_DB_HOST:-${CONNECT_ODOO_DB_HOSTNAME}}
       - ODOO_DB_PORT=${ODOO_DB_PORT:-${CONNECT_ODOO_DB_PORT}}
       - FLINK_JOBMANAGER_HOST=jobmanager
-
   jobmanager:
     networks:
       ozone-analytics:
@@ -125,43 +116,20 @@ services:
     image: mekomsolutions/ozone-flink-jobs
     ports:
       - "8084:8081"
-    command: standalone-job --job-classname  com.ozonehis.data.pipelines.streaming.StreamingETLJob --job-id 00000000000000000000000000000000 --properties-file /opt/flink/usrlib/job.properties --sink-url jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME} --sink-username ${ANALYTICS_DB_USER} --sink-password ${ANALYTICS_DB_PASSWORD}
     depends_on:
-      odoo-replica-identity-migration:
+       odoo-replica-identity-migration:
          condition: service_completed_successfully
-      analytics-migration:
-        condition: service_completed_successfully
-      zookeeper:
-        condition: service_started
-      kafka:
-        condition: service_started
-      postgresql:
-        condition: service_started
-      kafka-setup:
+       analytics-migration:
+          condition: service_completed_successfully
+       zookeeper:
+         condition: service_started
+       kafka:
+         condition: service_started
+       kafka-setup:
          condition: service_completed_successfully
+    labels: 
+      - kompose.service.group=flink-manager
     environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        io.tmp.dirs: /tmp/temp
-        state.backend: rocksdb
-        state.checkpoints.dir: file:///tmp/checkpoints/
-        state.savepoints.dir: file:///tmp/savepoints
-        execution.checkpointing.mode: EXACTLY_ONCE
-        execution.checkpointing.unaligned: true  
-        execution.checkpointing.interval: 30min
-        execution.checkpointing.tolerable-failed-checkpoints: 100
-        jobmanager.memory.process.size: ${JOB_MANAGER_PROCESS_MEMORY}
-        state.checkpoints.num-retained: 4
-        high-availability.storageDir: file:///tmp/ha
-        high-availability: ZOOKEEPER
-        high-availability.zookeeper.quorum: zookeeper:2181
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - FLINK_JOB_POSTGRES_USER=postgres
-      - FLINK_JOB_POSTGRES_PASSWORD=password
-      - FLINK_JOB_POSTGRES_URL=jdbc:postgresql://${ANALYTICS_DB_HOST}:${ANALYTICS_DB_PORT}/${ANALYTICS_DB_NAME}
-      - FLINK_JOB_PROPERTIES_BOOTSTRAP_SERVERS=kafka:9092
       - ANALYTICS_SOURCE_TABLES_PATH=/analytics/source-tables
       - ANALYTICS_QUERIES_PATH=/analytics/queries
       - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
@@ -170,58 +138,28 @@ services:
       - ANALYTICS_DB_HOST=${ANALYTICS_DB_HOST}
       - ANALYTICS_DB_PORT=${ANALYTICS_DB_PORT}
       - ANALYTICS_KAFKA_URL=${ANALYTICS_KAFKA_URL}
+      - OPENMRS_DB_NAME=${OPENMRS_DB_NAME}
+      - OPENMRS_DB_USER=${OPENMRS_DB_USER}
+      - OPENMRS_DB_PASSWORD=${OPENMRS_DB_PASSWORD}
+      - OPENMRS_DB_HOST=${OPENMRS_DB_HOST}
+      - OPENMRS_DB_PORT=${OPENMRS_DB_PORT}
+      - ODOO_DB_NAME=${ODOO_DB_NAME:-odoo}
+      - ODOO_DB_USER=${ODOO_DB_USER:-postgres}
+      - ODOO_DB_PASSWORD=${ODOO_DB_PASSWORD:-password}
+      - ODOO_DB_HOST=${ODOO_DB_HOST:-postgresql}
+      - ODOO_DB_PORT=${ODOO_DB_PORT:-5432}
+      - ZOOKEEPER_URL=${ZOOKEEPER_URL}
+      - ANALYTICS_CONFIG_FILE_PATH=/analytics/config.yaml
     volumes:
       - flink-shared-data:/tmp
-      - ./flink/pipelines/job.properties:/opt/flink/usrlib/job.properties
       - ./data:/data
       - ${ANALYTICS_SOURCE_TABLES_PATH}:/analytics/source-tables
       - ${ANALYTICS_QUERIES_PATH}:/analytics/queries
-  taskmanager:
-    networks:
-      ozone-analytics:
-    image: mekomsolutions/ozone-flink-jobs
-    depends_on:
-      - jobmanager
-      - zookeeper
-    command: taskmanager --properties-file /opt/flink/usrlib/job.properties
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        taskmanager.numberOfTaskSlots: 6
-        io.tmp.dirs: /tmp/temp
-        state.backend: rocksdb
-        state.checkpoints.dir: file:///tmp/checkpoints/
-        state.savepoints.dir: file:///tmp/savepoints
-        execution.checkpointing.unaligned: true  
-        execution.checkpointing.interval: 30min
-        execution.checkpointing.tolerable-failed-checkpoints: 100
-        taskmanager.memory.process.size: ${TASK_MANAGER_PROCESS_MEMORY}
-        taskmanager.memory.managed.fraction: ${TASK_MANAGER_PROCESS_MANAGED_MEMORY_FRACTION}
-        high-availability.storageDir: file:///tmp/ha
-        high-availability: ZOOKEEPER
-        high-availability.zookeeper.quorum: zookeeper:2181
-        state.checkpoints.num-retained: 4
-    volumes:
-      - flink-shared-data:/tmp
-      - ./flink/pipelines/job.properties:/opt/flink/usrlib/job.properties
-      - ./data:/data
-    restart: on-failure
-  odoo-replica-identity-migration:
-    depends_on:
-      - postgresql
-  analytics-migration:
-    depends_on:
-      - postgresql
+      - ${ANALYTICS_CONFIG_FILE_PATH}:/analytics/config.yaml
 volumes:
-  mysql-data:
-  flink-shared-data: ~
-  postgresql-data: ~
-  redis: ~
-  zookeeper-data: ~
-  kafka-data: ~
-  zookeeper-txns: ~
-  consul-data: ~
-  openmrs-referenceapplication-data: ~
+   flink-shared-data: ~
+   zookeeper-data: ~
+   kafka-data: ~
+   zookeeper-txns: ~
 networks:
   ozone-analytics:
