@@ -41,3 +41,30 @@ curl --fail -i -X PUT -H "Accept:application/json" -H "Content-Type:application/
                "timestampConverter.debug": "false",
                "snapshot.mode": "when_needed"
      }'
+
+curl --fail -i -X PUT -H "Accept:application/json" -H "Content-Type:application/json" http://${CONNECT_HOST}:8083/connectors/odoo-connector/config/ \
+        -d  '{
+                "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+                "tasks.max": "1",
+                "database.hostname": "${file:/kafka/config/connect-distributed.properties:odoo.db.hostname}",
+                "database.port": "${file:/kafka/config/connect-distributed.properties:odoo.db.port}",
+                "database.user": "${file:/kafka/config/connect-distributed.properties:odoo.db.username}",
+                "database.password": "${file:/kafka/config/connect-distributed.properties:odoo.db.password}",
+                "database.dbname" : "odoo",
+                "topic.prefix": "odoo",
+                "plugin.name": "pgoutput",
+                "database.server.name": "odoo",
+                "table.include.list": "public.(.*)",
+                "converters": "timestampConverter",
+                "timestampConverter.type": "oryanmoshe.kafka.connect.util.TimestampConverter",
+                "timestampConverter.format.time": "HH:mm:ss",
+                "timestampConverter.format.date": "YYYY-MM-dd",
+                "timestampConverter.format.datetime": "yyyy-MM-dd HH:mm:ss",
+                "timestampConverter.debug": "false",
+                "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+                "key.converter.schemas.enable": "true",
+                "heartbeat.interval.ms": "5000",
+                "slot.name": "odoo_debezium",
+                "publication.name": "odoo_publication",
+                "decimal.handling.mode": "double"
+    }'
