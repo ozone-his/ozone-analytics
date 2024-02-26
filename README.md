@@ -3,8 +3,8 @@ This project hosts Ozone Analytics suite.
 
 It provides multiple services to cover different infrastructure needs:
 
-- Running streaming and flatening data pipelines services only (without Superset)
-- Running streaming, flatening pipelines and data visualization services (with Superset)
+- Running streaming and flattening data pipeline services only (without Superset)
+- Running streaming, flattening pipelines and data visualization services (with Superset)
 - Running a Drill-backed analytics server with MinIO service
 - Running the Parquet export Flink job
 The flattening pipelines themselves are composed of two Flink Jobs.
@@ -62,9 +62,9 @@ export EXPORT_OUTPUT_TAG=h1;
 
 **Note**: The gateway.docker.internal is a special DNS name that resolves to the host machine from within containers. It is only available for Mac and Windows. For Linux, use the docker host IP by default 172.17.0.1
 
-### Streaming and flatening pipelines only (without Superset)
+### Streaming and flattening pipelines only (without Superset)
 
-In cases where you don't need to start Superset (for example when you will use the Parquet export job to create Parquet files to later upload onto Minio or S3, or if you want to plug your own BI tool) you can start only the streaming and flatening data pipelines by running:
+In cases where you don't need to start Superset (for example when you will use the Parquet export job to create Parquet files to later upload onto Minio or S3, or if you want to plug your own BI tool) you can start only the streaming and flattening data pipelines by running:
 
 ```bash
 docker compose -f docker-compose-migration.yaml -f docker-compose-db.yaml -f docker-compose-data-pipelines-local.yaml up -d --build
@@ -72,8 +72,8 @@ docker compose -f docker-compose-migration.yaml -f docker-compose-db.yaml -f doc
 
 Which will start ;
 
-* [ZooKeeper](https://zookeeper.apache.org/ "ZooKeeper") - Used by Flink for High Availability ensuring we can always recover when a job fails or is stopped. Without this, Flink job will restart the streaming every time it is stopped and restarted.
-* [Kafka Connect](https://docs.confluent.io/platform/current/connect/ "Kafka Connect")  - Kafka Connect is a tool for scalably and reliably streaming data between Apache Kafka and other systems. In the context of this project Kafka Connect is used as means of deploying [Debezium](https://debezium.io/documentation/reference/stable/architecture.html "Debezium").
+* [ZooKeeper](https://zookeeper.apache.org/ "ZooKeeper") - Used by Flink for High Availability ensuring we can always recover when a job fails or is stopped. Without this, the Flink job will restart the streaming every time it is stopped and restarted.
+* [Kafka Connect](https://docs.confluent.io/platform/current/connect/ "Kafka Connect")  - Kafka Connect is a tool for scalably and reliably streaming data between Apache Kafka and other systems. In the context of this project, Kafka Connect is used as a means of deploying [Debezium](https://debezium.io/documentation/reference/stable/architecture.html "Debezium").
 * [Kafka](https://kafka.apache.org/ "Kafka") - Used for storing streamed events from MySQL.
 * [Kowl](https://github.com/redpanda-data/kowl "Kowl") - Provides and UI for managing Kafka.
 * [Flink Job Manager](https://nightlies.apache.org/flink/flink-docs-master/docs/internals/job_scheduling/ "Flink Job Manager") - Coordinates the Flink cluster.
@@ -81,7 +81,7 @@ Which will start ;
 * [MySQL](https://www.mysql.com/ "MySQL") - MySQL instance filled with OpenMRS demo data, used for demo purposes with this project.
 * [PostgresSQL](https://www.postgresql.org/ "PostgresSQL") - The sink database where the streaming pipelines output the flattened data. Once the data is flattened, it can be used directly for analytics by Superset or exported to Parquet for external storage or using any other analytics tool (Tableau, Power BI, Metabase...).
 
-###  Streaming, flatening pipelines and data visualization (with Superset)
+###  Streaming, flattening pipelines and data visualization (with Superset)
 
 To start the complete streaming and flattening suite, including Superset as the BI tool, run:
 
@@ -98,8 +98,8 @@ This will start the following services:
 
 > NOTE: The streaming jobs may fail for a while during the initial start up as Flink discovers data partitions from Kafka. You can wait for this to sort itself out or you can try to restart the `jobmanager` and `taskmanager` services with `docker compose -f docker-compose-data-pipelines-local.yaml restart jobmanager taskmanager`
 
-### Streaming and flatening pipelines only against an existing deployment
-When you have an existing deployment of Ozone and you want to run the streaming and flatening pipelines against it, you can use the following command:
+### Streaming and flattening pipelines only against an existing deployment
+When you have an existing deployment of Ozone and you want to run the streaming and flattening pipelines against it, you can use the following command:
 
 ```bash
 docker compose -f docker-compose-streaming-common.yaml -f docker-compose-migration.yaml up -d
@@ -121,7 +121,7 @@ To start this stack run;
 
 
 ### Usage with external databases
-To Simpify the setup of the project we have included OpenMRS and Analtics databases for easy testing, in production the OpenMRS and Analytics databases will be external to the project. To use external databases you need to set the following environment variables:
+To Simplify the setup of the project we have included OpenMRS and Analytics databases for easy testing, in production the OpenMRS and Analytics databases will be external to the project. To use external databases you need to set the following environment variables:
 | Variable|Description |
 |---|----|
 |CONNECT_MYSQL_HOSTNAME|The project uses Kafka connect to get the OpenMRS changes we need to set this to the source OpenMRS MySQL host|
@@ -162,7 +162,7 @@ export OPENMRS_DB_HOST=gateway.docker.internal
 ### Drill-backed analytics server
 
 In cases where you have multiple instances of Ozone deployed in remote locations, you may what to process data onsite with the streaming and flatening pipelines but ship the data to a central repository for analytics. This provides a solution that uses:
-* [Minio](https://min.io/ "Minio") - An S3 compatible object storage server.
+* [Minio](https://min.io/ "Minio") - An S3-compatible object storage server.
 * [Drill](https://drill.apache.org/ "Drill") - A Schema-free SQL Query Engine for Hadoop, NoSQL and Cloud Storage.
 * [Superset](https://superset.apache.org/ "Superset") - Data exploration and data visualization tool.
 * [Superset Worker](https://superset.apache.org/docs/intro "Superset Worker") - Run Superset background tasks.
