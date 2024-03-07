@@ -150,6 +150,7 @@ services:
       - ODOO_DB_PORT=${ODOO_DB_PORT:-5432}
       - ZOOKEEPER_URL=${ZOOKEEPER_URL}
       - ANALYTICS_CONFIG_FILE_PATH=/analytics/config.yaml
+      - JAVA_OPTS=${JAVA_OPTS}
     volumes:
       - flink-shared-data:/tmp
       - ./data:/data

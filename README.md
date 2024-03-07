@@ -39,24 +39,27 @@ export DISTRO_PATH=<path_to_ozonepro_distro>
 The following environment variables assume you are running the project with the databases being part of the project (Meaning you are including `docker-compose-db.yaml`), If you are using external databases please see [Usage with external databases](#usage-with-external-databases) for overriding the hostnames.
 
 ``` bash
-export ANALYTICS_CONFIG_FILE_PATH=$DISTRO_PATH/distro/configs/analytics/config.yaml;   \                                 
+export ANALYTICS_CONFIG_FILE_PATH=$DISTRO_PATH/distro/configs/analytics/config.yaml;\
+export ANALYTICS_SOURCE_TABLES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/flattening/tables/;\
+export ANALYTICS_QUERIES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/flattening/queries/;\
+export ANALYTICS_DESTINATION_TABLES_MIGRATIONS_PATH=$DISTRO_PATH/distro/configs/analytics/liquibase/analytics/;\
 export ANALYTICS_DB_PORT=5432; \
 export CONNECT_MYSQL_PORT=3306; \
-export CONNECT_MYSQL_USER=root; \                       
+export CONNECT_MYSQL_USER=root; \
 export CONNECT_MYSQL_PASSWORD=3cY8Kve4lGey; \
-export CONNECT_ODOO_DB_PORT=5432; \          
-export CONNECT_ODOO_DB_NAME=odoo; \                       
-export CONNECT_ODOO_DB_USER=postgres; \      
+export CONNECT_ODOO_DB_PORT=5432; \
+export CONNECT_ODOO_DB_NAME=odoo; \
+export CONNECT_ODOO_DB_USER=odoo; \
 export CONNECT_ODOO_DB_PASSWORD=password \
 export ODOO_DB_PORT=5432; \
 export ODOO_DB_NAME=odoo; \
-export ODOO_DB_USER=postgres; \
-export ODOO_DB_PASSWORD=password; \
+export ODOO_DB_USER=odoo; \
+export ODOO_DB_PASSWORD=password;\
 export OPENMRS_DB_PORT=3306; \
-export OPENMRS_DB_NAME=openmrs; \              
+export OPENMRS_DB_NAME=openmrs; \
 export EXPORT_DESTINATION_TABLES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/export/tables/; \
 export EXPORT_SOURCE_QUERIES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/export/queries; \
-export EXPORT_OUTPUT_PATH=$(pwd)/data/parquet/; \                                                
+export EXPORT_OUTPUT_PATH=./data/parquet; \
 export EXPORT_OUTPUT_TAG=h1;
 ```
 
@@ -161,7 +164,7 @@ export OPENMRS_DB_HOST=gateway.docker.internal
 
 ### Drill-backed analytics server
 
-In cases where you have multiple instances of Ozone deployed in remote locations, you may what to process data onsite with the streaming and flatening pipelines but ship the data to a central repository for analytics. This provides a solution that uses:
+In cases where you have multiple instances of Ozone deployed in remote locations, you may want to process data onsite with the streaming and flattening pipelines but ship the data to a central repository for analytics. This provides a solution that uses:
 * [Minio](https://min.io/ "Minio") - An S3-compatible object storage server.
 * [Drill](https://drill.apache.org/ "Drill") - A Schema-free SQL Query Engine for Hadoop, NoSQL and Cloud Storage.
 * [Superset](https://superset.apache.org/ "Superset") - Data exploration and data visualization tool.
@@ -173,22 +176,14 @@ To start this stack run;
 
 #### Parquet export using an OpenMRS database backup
 
--  Copy the OpenMRS database dump to `./docker/sqls/mysql`
+-  export the path to the distro
 -  cd `docker/` and run the following commands
 
-- Start database services
+- Run the flattening helper scripts to flatten and export the data
 ```bash
-docker compose -f docker-compose-db.yaml up -d 
+./scripts/run-batch-export.sh -m <path to openmrs dump> -d <path to odoo dump> -l <location tag>
 ```
-- Run the batch ETL job to transform the data
-```bash
-docker compose -f docker-compose-migration.yaml -f docker-compose-batch-etl.yaml up
-```
-- Export data in a Parquet format
-```bash
-docker compose -f docker-compose-export.yaml up
-```
-:bulb: data folder should be found at `./docker/data/parquet`
+:bulb: data folder should be found at `./docker/data/parquet` unless you set the -o  option for the script
 
 #### Parquet export against an existing production deployment
 
