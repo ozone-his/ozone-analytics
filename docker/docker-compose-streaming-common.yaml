@@ -68,6 +68,7 @@ services:
       - 8383:8083
     volumes:
       - ./debezium-connect/jars/TimestampConverter-1.2.4-SNAPSHOT.jar:/kafka/connect/debezium-connector-mysql/TimestampConverter-1.2.4-SNAPSHOT.jar
+      - ./debezium-connect/jars/TimestampConverter-1.2.4-SNAPSHOT.jar:/kafka/connect/debezium-connector-postgres/TimestampConverter-1.2.4-SNAPSHOT.jar
     environment:
       - BOOTSTRAP_SERVERS=kafka:9092
       - GROUP_ID=1
