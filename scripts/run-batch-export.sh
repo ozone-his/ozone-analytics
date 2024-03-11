@@ -43,10 +43,10 @@ sleep 10
 
 echo "$INFO Restoring OpenMRS dump..."
 docker compose -f docker-compose-db.yaml cp $OPENMRS_DUMP_PATH mysql:/tmp/dump.sql
-docker compose -f docker-compose-db.yaml exec mysql sh -c 'mysql -h localhost -u $MYSQL_USER -p$MYSQL_PASSWORD  --database=openmrs -v < /tmp/dump.sql'
+docker compose -f docker-compose-db.yaml exec mysql sh -c 'mysql -h localhost -u root -p$MYSQL_ROOT_PASSWORD  --database=openmrs -v < /tmp/dump.sql'
 
 echo "$INFO Applying Appointment Boolean type Workaround..."
-docker compose -f docker-compose-db.yaml exec mysql sh -c 'mysql -h localhost -u $MYSQL_USER -p$MYSQL_PASSWORD  --database=openmrs -e "ALTER TABLE appointment_service MODIFY COLUMN voided TINYINT(1);ALTER TABLE appointment_service_type MODIFY COLUMN voided TINYINT(1);ALTER TABLE patient_appointment_provider MODIFY COLUMN voided TINYINT(1);ALTER TABLE patient_appointment MODIFY COLUMN voided TINYINT(1);"'
+docker compose -f docker-compose-db.yaml exec mysql sh -c 'mysql -h localhost -u root -p$MYSQL_ROOT_PASSWORD  --database=openmrs -e "ALTER TABLE appointment_service MODIFY COLUMN voided TINYINT(1);ALTER TABLE appointment_service_type MODIFY COLUMN voided TINYINT(1);ALTER TABLE patient_appointment_provider MODIFY COLUMN voided TINYINT(1);ALTER TABLE patient_appointment MODIFY COLUMN voided TINYINT(1);"'
 
 echo "$INFO Restoring Odoo dump..."
 docker compose -f docker-compose-db.yaml cp $ODOO_DUMP_PATH postgresql:/tmp/dump.sql
