@@ -151,6 +151,10 @@ services:
       - ZOOKEEPER_URL=${ZOOKEEPER_URL}
       - ANALYTICS_CONFIG_FILE_PATH=/analytics/config.yaml
       - JAVA_OPTS=${JAVA_OPTS}
+      - NETWORK_MEMORY_MIN=${NETWORK_MEMORY_MIN:-1g}
+      - NETWORK_MEMORY_MAX=${NETWORK_MEMORY_MAX:-1g}
+      - TOTAL_PROCESS_MEMORY=${TOTAL_PROCESS_MEMORY:-8g}
+      - MANAGED_MEMORY_FRACTION=${MANAGED_MEMORY_FRACTION:-0.7}
     volumes:
       - flink-shared-data:/tmp
       - ./data:/data
