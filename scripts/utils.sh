@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+
 export TEXT_BLUE=`tput setaf 4`
 export TEXT_RED=`tput setaf 1`
 export BOLD=`tput bold`
@@ -16,7 +17,7 @@ function exportEnvs () {
     export CONNECT_ODOO_DB_PORT=5432;\
     export CONNECT_ODOO_DB_NAME=odoo;\
     export CONNECT_ODOO_DB_USER=odoo;\
-    export CONNECT_ODOO_DB_PASSWORD=password\
+    export CONNECT_ODOO_DB_PASSWORD=password;\
     export ODOO_DB_PORT=5432;\
     export ODOO_DB_NAME=odoo;\
     export ODOO_DB_USER=odoo;\

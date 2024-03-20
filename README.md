@@ -176,8 +176,10 @@ To start this stack run;
 
 #### Parquet export using an OpenMRS database backup
 
--  export the path to the distro
--  cd `docker/` and run the following commands
+-  Export the path to the distro
+```bash
+export DISTRO_PATH=<path_to_ozone>
+```
 
 - Run the flattening helper scripts to flatten and export the data
 ```bash
