@@ -178,7 +178,7 @@ To start this stack run;
 
 -  Export the path to the distro
 ```bash
-export DISTRO_PATH=<path_to_ozone>
+export ANALYTICS_CONFIG_PATH=<path_to_ozone>
 ```
 
 - Run the flattening helper scripts to flatten and export the data

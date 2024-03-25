@@ -9,7 +9,7 @@ INFO="$TEXT_BLUE$BOLD[INFO]$RESET_FORMATTING"
 ERROR="$TEXT_RED$BOLD[ERROR]$RESET_FORMATTING"
 function exportEnvs () {
     echo "$INFO Exporting envs..."
-    export ANALYTICS_CONFIG_FILE_PATH=$DISTRO_PATH/distro/configs/analytics/config.yaml;\
+    export ANALYTICS_CONFIG_FILE_PATH=$ANALYTICS_CONFIG_PATH/config.yaml;\
     export ANALYTICS_DB_PORT=5432;\
     export CONNECT_MYSQL_PORT=3306;\
     export CONNECT_MYSQL_USER=root;\
@@ -24,16 +24,16 @@ function exportEnvs () {
     export ODOO_DB_PASSWORD=password;\
     export OPENMRS_DB_PORT=3306;\
     export OPENMRS_DB_NAME=openmrs;\
-    export EXPORT_DESTINATION_TABLES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/export/tables/;\
-    export EXPORT_SOURCE_QUERIES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/export/queries;\
+    export EXPORT_DESTINATION_TABLES_PATH=$ANALYTICS_CONFIG_PATH/dsl/export/tables/;\
+    export EXPORT_SOURCE_QUERIES_PATH=$ANALYTICS_CONFIG_PATH/dsl/export/queries;\
     export EXPORT_OUTPUT_PATH=$(pwd)/data/parquet/;\
     export EXPORT_OUTPUT_TAG=h1;
     export MYSQL_USER=openmrs;\
     export MYSQL_PASSWORD=password;\
-    export ANALYTICS_CONFIG_FILE_PATH=$DISTRO_PATH/distro/configs/analytics/config.yaml;\
-    export ANALYTICS_SOURCE_TABLES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/flattening/tables/;\
-    export ANALYTICS_QUERIES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/flattening/queries/;\
-    export ANALYTICS_DESTINATION_TABLES_MIGRATIONS_PATH=$DISTRO_PATH/distro/configs/analytics/liquibase/analytics/;\
+    export ANALYTICS_CONFIG_FILE_PATH=$ANALYTICS_CONFIG_PATH/config.yaml;\
+    export ANALYTICS_SOURCE_TABLES_PATH=$ANALYTICS_CONFIG_PATH/dsl/flattening/tables/;\
+    export ANALYTICS_QUERIES_PATH=$ANALYTICS_CONFIG_PATH/dsl/flattening/queries/;\
+    export ANALYTICS_DESTINATION_TABLES_MIGRATIONS_PATH=$ANALYTICS_CONFIG_PATH/liquibase/analytics/;\
     export JAVA_OPTS='-Xms2048m -Xmx8192m';
 
     echo "→ ANALYTICS_CONFIG_FILE_PATH=$ANALYTICS_CONFIG_FILE_PATH"
