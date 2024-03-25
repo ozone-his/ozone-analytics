@@ -10,11 +10,16 @@ services:
       - ANALYTICS_DB_HOST=${ANALYTICS_DB_HOST}
       - ANALYTICS_DB_PORT=${ANALYTICS_DB_PORT}
       - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
-      - EXPORT_OUTPUT_PATH=${EXPORT_OUTPUT_PATH}
       - EXPORT_OUTPUT_TAG=${EXPORT_OUTPUT_TAG}
       - ANALYTICS_CONFIG_FILE_PATH=/analytics/config.yaml
+      - JAVA_OPTS=${JAVA_OPTS}
+      - NETWORK_MEMORY_MIN=${NETWORK_MEMORY_MIN:-1g}
+      - NETWORK_MEMORY_MAX=${NETWORK_MEMORY_MAX:-1g}
+      - TOTAL_PROCESS_MEMORY=${TOTAL_PROCESS_MEMORY:-8g}
+      - MANAGED_MEMORY_FRACTION=${MANAGED_MEMORY_FRACTION:-0.7}
+    ports:
+      - "8084:8081"
     volumes:
-      - ./data/parquet:/parquet
       - ./flink/config/flink-conf.yaml:/etc/flink/flink-conf.yaml
       - ${EXPORT_DESTINATION_TABLES_PATH}:/export/destination-tables
       - ${EXPORT_SOURCE_QUERIES_PATH}:/export/queries
