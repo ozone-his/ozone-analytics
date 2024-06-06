@@ -4,6 +4,8 @@ on:
   push:
   pull_request:
     types: [opened, reopened]
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -39,7 +41,7 @@ jobs:
 
   publish:
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
     steps:
       - uses: actions/checkout@v2
 
