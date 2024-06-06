@@ -1,4 +1,4 @@
-FROM alpine:3
+FROM alpine:latest
 # Set non-built-time labels
 LABEL org.opencontainers.image.authors="Mekom Solutions"
 LABEL org.opencontainers.image.description="A custom image used to configure kafka connect for flink"
