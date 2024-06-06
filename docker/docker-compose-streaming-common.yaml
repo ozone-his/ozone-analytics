@@ -114,7 +114,7 @@ services:
     networks:
       ozone-analytics:
     restart: on-failure
-    image: mekomsolutions/ozone-flink-jobs
+    image: mekomsolutions/ozone-flink-jobs:2.2.0
     ports:
       - "8084:8081"
       - "9250:9250"
