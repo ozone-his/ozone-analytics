@@ -1,38 +1,6 @@
-x-superset-volumes: &superset-volumes
-  - ./superset/docker:/app/docker
-  - ./superset/docker/pythonpath:/app/pythonpath
-  - ./superset/config/datasources:/app/datasources
-  - ${SUPERSET_HOME:-superset_home}:/app/superset_home
-x-superset-environment: &superset-environment
-  - DATABASE_HOST=${POSTGRES_DB_HOST}
-  - DATABASE_DB=${SUPERSET_DB}
-  - DATABASE_USER=${SUPERSET_DB_USER}
-  - DATABASE_PASSWORD=${SUPERSET_DB_PASSWORD}
-  - SECRET_KEY=${SECRET_KEY}
-  - ANALYTICS_DATASOURCE_NAME=Postgres
-  - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
-  - ANALYTICS_DB_USER=${ANALYTICS_DB_USER}
-  - ANALYTICS_DB_PASSWORD=${ANALYTICS_DB_PASSWORD}
-  - ANALYTICS_DB_HOST=${POSTGRES_DB_HOST}
-  - FLASK_ENV=production
-  - SUPERSET_ENV=production
-  - DATABASE_DIALECT=${DATABASE_DIALECT}
-  - DATABASE_PORT=${DATABASE_PORT}
-  - ENABLE_PROXY_FIX=${ENABLE_PROXY_FIX}
-  - REDIS_HOST=${REDIS_HOST}
-  - REDIS_PORT=${REDIS_PORT}
-  - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-version: '3.8'
 services:
+
   superset:
-    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
-    networks:
-      ozone-analytics:
-      web:
-    build:
-      context: superset/
-    environment: *superset-environment
-    restart: on-failure
     depends_on:
       redis:
         condition: service_started
@@ -40,27 +8,39 @@ services:
         condition: service_started
       superset-init:
         condition: service_completed_successfully
-    ports:
-      - "8088:8088"
-    volumes: *superset-volumes
+    environment: &superset-env
+      - DATABASE_HOST=${POSTGRES_DB_HOST}
+      - DATABASE_DB=${SUPERSET_DB}
+      - DATABASE_USER=${SUPERSET_DB_USER}
+      - DATABASE_PASSWORD=${SUPERSET_DB_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_USERNAME=${SUPERSET_ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
+      - ANALYTICS_DB_PASSWORD=${ANALYTICS_DB_PASSWORD}
+      - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
+      - ANALYTICS_DB_USER=${ANALYTICS_DB_USER}
+      - ANALYTICS_DB_HOST=${ANALYTICS_DB_HOST}
+      - ANALYTICS_DATASOURCE_NAME=${ANALYTICS_DATASOURCE_NAME}
+      - SUPERSET_PUBLIC_URL=https://${SUPERSET_HOSTNAME}
+      - KEYCLOAK_URL=https://${KEYCLOAK_HOSTNAME}
+      - SUPERSET_CLIENT_SECRET=${SUPERSET_CLIENT_SECRET}
+      - SUPERSET_CLIENT_ID=${SUPERSET_CLIENT_ID}
+      
+    image: &superset-image mekomsolutions/superset-pro
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=web"
-      - "traefik.http.routers.superset.rule=Host(`${SUPERSET_DOMAIN}`)"
-      - "traefik.http.routers.superset.tls=true"
-      - "traefik.http.routers.superset.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.superset.entrypoints=websecure"
-      - "traefik.http.middlewares.superset-redirect-web-secure.redirectscheme.scheme=https"
-      - "traefik.http.routers.superset-web.middlewares=superset-redirect-web-secure"        
-      - "traefik.http.routers.superset-web.rule=Host(`${SUPERSET_DOMAIN}`)"
-      - "traefik.http.routers.superset-web.entrypoints=web"
-  superset-worker:
+      traefik.enable: "true"
+      traefik.http.routers.superset.rule: "Host(`${SUPERSET_HOSTNAME}`)"
+      traefik.http.routers.superset.entrypoints: "websecure"
+      traefik.http.services.superset.loadbalancer.server.port: 8088
     networks:
-      ozone-analytics:
-    build:
-      context: superset/
-    environment: *superset-environment
-    restart: on-failure
+      - web
+      - ozone-analytics
+    restart: unless-stopped
+    volumes:
+      - ${SUPERSET_CONFIG_PATH}/:/etc/superset/
+
+  superset-worker:
+    command: "celery --app=superset.tasks.celery_app:app worker --pool=gevent -Ofair -n worker1@%h --loglevel=INFO"
     depends_on:
       redis:
         condition: service_started
@@ -68,36 +48,57 @@ services:
         condition: service_started
       superset-init:
         condition: service_completed_successfully
-    command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    volumes: *superset-volumes
-  redis:
-    image: redis
+    environment: *superset-env
+    image: *superset-image
+    restart: unless-stopped
+    volumes:
+      - ${SUPERSET_CONFIG_PATH}/:/etc/superset/
+    networks:
+      - ozone-analytics
+    
+  superset-init:
+    command: "/etc/superset/superset-init.sh"
+    depends_on:
+      - postgresql
+      - redis
+    environment: *superset-env
+    image: *superset-image
     restart: on-failure
     volumes:
-      - redis:/data
+      - ${SUPERSET_CONFIG_PATH}/:/etc/superset/
+      - ${SUPERSET_DASHBOARDS_PATH}/:/dashboards/
     networks:
-      ozone-analytics:
+      - ozone-analytics
+    
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - ozone-analytics
+    
+  postgresql:
+    environment:
+      # Analytics
+      ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
+      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+      # Superset
+      SUPERSET_DB: ${SUPERSET_DB}
+      SUPERSET_DB_USER: ${SUPERSET_DB_USER}
+      SUPERSET_DB_PASSWORD: ${SUPERSET_DB_PASSWORD}
+    volumes:
+      - "${SQL_SCRIPTS_PATH}/postgresql/create_db.sh:/docker-entrypoint-initdb.d/create_db.sh"
+      - "${SQL_SCRIPTS_PATH}/postgresql/analytics:/docker-entrypoint-initdb.d/db/analytics"
+      - "${SQL_SCRIPTS_PATH}/postgresql/superset:/docker-entrypoint-initdb.d/db/superset"
+    networks:
+      - ozone-analytics
 
-  superset-init:
-    networks:
-      ozone-analytics:
-    build:
-      context: superset/
-    environment: *superset-environment
-    restart: on-failure
-    depends_on:
-      postgresql:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    command: ["/app/docker/docker-init.sh"]
-    volumes: *superset-volumes
 volumes:
-   redis: ~
-   superset_home:
-    external: false
+  redis-data: ~
 networks:
   ozone-analytics:
-  web: 
+  web:
     external: true
     name: web

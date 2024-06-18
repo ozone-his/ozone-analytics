@@ -1,0 +1,103 @@
+x-superset-volumes: &superset-volumes
+  - ./superset/docker:/app/docker
+  - ./superset/docker/pythonpath:/app/pythonpath
+  - ./superset/config/datasources:/app/datasources
+  - ${SUPERSET_HOME:-superset_home}:/app/superset_home
+x-superset-environment: &superset-environment
+  - DATABASE_HOST=${POSTGRES_DB_HOST}
+  - DATABASE_DB=${SUPERSET_DB}
+  - DATABASE_USER=${SUPERSET_DB_USER}
+  - DATABASE_PASSWORD=${SUPERSET_DB_PASSWORD}
+  - SECRET_KEY=${SECRET_KEY}
+  - ANALYTICS_DATASOURCE_NAME=Postgres
+  - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
+  - ANALYTICS_DB_USER=${ANALYTICS_DB_USER}
+  - ANALYTICS_DB_PASSWORD=${ANALYTICS_DB_PASSWORD}
+  - ANALYTICS_DB_HOST=${POSTGRES_DB_HOST}
+  - FLASK_ENV=production
+  - SUPERSET_ENV=production
+  - DATABASE_DIALECT=${DATABASE_DIALECT}
+  - DATABASE_PORT=${DATABASE_PORT}
+  - ENABLE_PROXY_FIX=${ENABLE_PROXY_FIX}
+  - REDIS_HOST=${REDIS_HOST}
+  - REDIS_PORT=${REDIS_PORT}
+  - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+version: '3.8'
+services:
+  superset:
+    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
+    networks:
+      ozone-analytics:
+      web:
+    build:
+      context: superset/
+    environment: *superset-environment
+    restart: on-failure
+    depends_on:
+      redis:
+        condition: service_started
+      postgresql:
+        condition: service_started
+      superset-init:
+        condition: service_completed_successfully
+    ports:
+      - "8088:8088"
+    volumes: *superset-volumes
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.superset.rule=Host(`${SUPERSET_DOMAIN}`)"
+      - "traefik.http.routers.superset.tls=true"
+      - "traefik.http.routers.superset.tls.certresolver=${SUPERSET_CERT_RESOLVER}"
+      - "traefik.http.routers.superset.entrypoints=${SUPERSET_CERT_RESOLVER}"
+      - "traefik.http.middlewares.superset-redirect-web-secure.redirectscheme.scheme=https"
+      - "traefik.http.routers.superset-web.middlewares=superset-redirect-web-secure"        
+      - "traefik.http.routers.superset-web.rule=Host(`${SUPERSET_DOMAIN}`)"
+      - "traefik.http.routers.superset-web.entrypoints=web"
+  superset-worker:
+    networks:
+      ozone-analytics:
+    build:
+      context: superset/
+    environment: *superset-environment
+    restart: on-failure
+    depends_on:
+      redis:
+        condition: service_started
+      postgresql:
+        condition: service_started
+      superset-init:
+        condition: service_completed_successfully
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    volumes: *superset-volumes
+  redis:
+    image: redis
+    restart: on-failure
+    volumes:
+      - redis:/data
+    networks:
+      ozone-analytics:
+
+  superset-init:
+    networks:
+      ozone-analytics:
+    build:
+      context: superset/
+    environment: *superset-environment
+    restart: on-failure
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: ["/app/docker/docker-init.sh"]
+    volumes: *superset-volumes
+volumes:
+   redis: ~
+   superset_home:
+    external: false
+networks:
+  ozone-analytics:
+  web: 
+    external: true
+    name: web
