@@ -22,7 +22,7 @@ services:
       - "traefik.docker.network=web"
       - "traefik.http.routers.minio.rule=Host(`${MINIO_DOMAIN}`)"
       - "traefik.http.routers.minio.tls=true"
-      - "traefik.http.routers.minio.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.minio.tls.certresolver=${MINIO_CERT_RESOLVER}"
       - "traefik.http.routers.minio.entrypoints=websecure"
       - "traefik.http.middlewares.minio-redirect-web-secure.redirectscheme.scheme=https"
       - "traefik.http.routers.minio.middlewares=superset-redirect-web-secure"
