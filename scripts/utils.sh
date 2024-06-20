@@ -50,7 +50,7 @@ function exportEnvs () {
     export ANALYTICS_DESTINATION_TABLES_MIGRATIONS_PATH=$ANALYTICS_CONFIG_PATH/liquibase/analytics
     export SQL_SCRIPTS_PATH=$DISTRO_PATH/data
     export SUPERSET_CONFIG_PATH=$DISTRO_PATH/configs/superset/
-    export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/configs/superset/dashboard-assets/
+    export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/configs/superset/assets/
     export JAVA_OPTS='-Xms2048m -Xmx8192m';
 
     echo "→ ANALYTICS_CONFIG_FILE_PATH=$ANALYTICS_CONFIG_FILE_PATH"
@@ -122,5 +122,5 @@ function setTraefikHostnames {
     export SUPERSET_HOSTNAME=analytics-"${IP_WITH_DASHES}.traefik.me"
     export KEYCLOAK_HOSTNAME=auth-"${IP_WITH_DASHES}.traefik.me"
     echo "→ SUPERSET_HOSTNAME=$SUPERSET_HOSTNAME"
-    echo "→ KEYCLOAK_HOSTNAME=$SUPERSET_HOSTNAME"
+    echo "→ KEYCLOAK_HOSTNAME=$KEYCLOAK_HOSTNAME"
 }
