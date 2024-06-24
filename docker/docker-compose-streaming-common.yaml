@@ -110,6 +110,8 @@ services:
       - ODOO_DB_HOST=${ODOO_DB_HOST:-${CONNECT_ODOO_DB_HOSTNAME}}
       - ODOO_DB_PORT=${ODOO_DB_PORT:-${CONNECT_ODOO_DB_PORT}}
       - FLINK_JOBMANAGER_HOST=jobmanager
+      - CONNECT_OPENMRS=${CONNECT_OPENMRS:-1}
+      - CONNECT_ODOO=${CONNECT_ODOO:-1}
   jobmanager:
     networks:
       ozone-analytics:
