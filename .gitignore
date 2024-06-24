@@ -254,3 +254,4 @@ docker/data/parquet/
 !docker/data/parquet/.gitkeep
 data/
 debezium-connect/
+scripts/distro

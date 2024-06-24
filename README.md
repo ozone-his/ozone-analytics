@@ -60,7 +60,9 @@ export OPENMRS_DB_NAME=openmrs; \
 export EXPORT_DESTINATION_TABLES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/export/tables/; \
 export EXPORT_SOURCE_QUERIES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/export/queries; \
 export EXPORT_OUTPUT_PATH=./data/parquet; \
-export EXPORT_OUTPUT_TAG=h1;
+export EXPORT_OUTPUT_TAG=h1; \
+export SUPERSET_CONFIG_PATH=$DISTRO_PATH/configs/superset/ ; \
+export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/configs/superset/assets
 ```
 
 **Note**: The gateway.docker.internal is a special DNS name that resolves to the host machine from within containers. It is only available for Mac and Windows. For Linux, use the docker host IP by default 172.17.0.1
@@ -89,7 +91,7 @@ Which will start ;
 To start the complete streaming and flattening suite, including Superset as the BI tool, run:
 
 ```bash
-docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines-local.yaml -f docker-compose-superset.yaml up -d --build
+docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines-local.yaml -f docker-compose-superset.yaml -f docker-compose-superset-ports.yaml  up -d --build
 ```
 
 This will start the following services:
@@ -120,7 +122,7 @@ In cases where you have multiple instances of Ozone deployed in remote locations
 
 To start this stack run;
 
-`docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
+`docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-superset-ports.yaml -f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
 
 
 ### Usage with external databases
@@ -158,7 +160,7 @@ export ODOO_DB_HOST=gateway.docker.internal; \
 export OPENMRS_DB_HOST=gateway.docker.internal
 ```
 
-`docker compose -f docker-compose-db.yaml -f docker-compose-streaming-common.yaml docker-compose-superset.yaml up -d --build`
+`docker compose -f docker-compose-db.yaml -f docker-compose-streaming-common.yaml docker-compose-superset.yaml -f docker-compose-superset-ports.yaml up -d --build`
 
 **Note**: We still need the `docker-compose-db.yaml` file as it will start the PostgreSQL database for Superset if you don't need Superset you can ignore `docker-compose-db.yaml` and `docker-compose-superset.yaml`
 
@@ -172,7 +174,26 @@ In cases where you have multiple instances of Ozone deployed in remote locations
 
 To start this stack run;
 
-`docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
+`docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-superset-ports.yaml-f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
+
+### Running with helper scripts
+The examples above are for running the services manually, we have included helper scripts to simplify the process of running the services. The helper scripts are located in the `scripts` folder. The scripts assume you have an Ozone instance running locally. If you don't follow the instructions [here](#to-run) section to start the services.
+To run the services using the helper scripts you:
+
+```bash
+cd scripts
+```
+Fetch the Ozone Pro Distro
+
+```bash
+./fetch-distro.sh 1.0.0-SNAPSHOT
+```
+Start the project with streaming pipelines
+
+```bash
+./start.sh
+```
+
 
 #### Parquet export using an OpenMRS database backup
 
