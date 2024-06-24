@@ -119,8 +119,6 @@ services:
       - "8084:8081"
       - "9250:9250"
     depends_on:
-       odoo-replica-identity-migration:
-         condition: service_completed_successfully
        analytics-migration:
           condition: service_completed_successfully
        zookeeper:
