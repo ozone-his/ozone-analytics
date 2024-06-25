@@ -79,6 +79,7 @@ services:
       - ozone-analytics
     
   postgresql:
+    shm_size: 2gb
     environment:
       # Analytics
       ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
