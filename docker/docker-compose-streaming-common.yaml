@@ -159,6 +159,7 @@ services:
       - MANAGED_MEMORY_FRACTION=${MANAGED_MEMORY_FRACTION:-0.7}
       - TASK_MANAGER_SLOTS=${TASK_MANAGER_SLOTS:-20}
       - TASK_PARALLELISM=${TASK_PARALLELISM:-1}
+      - MANAGED_MEMORY_SIZE=${MANAGED_MEMORY_SIZE:-1g}
     volumes:
       - flink-shared-data:/tmp
       - ./data:/data
