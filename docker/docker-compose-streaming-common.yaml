@@ -3,7 +3,7 @@ services:
   zookeeper:
     networks:
       ozone-analytics:
-    restart: on-failure
+    restart: unless-stopped
     image: debezium/zookeeper:${DEBEZIUM_VERSION}
     ports:
      - 2181:2181
@@ -15,7 +15,7 @@ services:
     labels: 
       kompose.service.type: clusterip
   kafka:
-    restart: on-failure
+    restart: unless-stopped
     image: debezium/kafka:${DEBEZIUM_VERSION}
     networks:
       ozone-analytics:
@@ -60,7 +60,7 @@ services:
     depends_on:
       - kafka
   connect:
-    restart: on-failure
+    restart: unless-stopped
     image: debezium/connect:${DEBEZIUM_VERSION}
     networks:
       ozone-analytics:
@@ -115,7 +115,7 @@ services:
   jobmanager:
     networks:
       ozone-analytics:
-    restart: on-failure
+    restart: unless-stopped
     image: mekomsolutions/ozone-flink-jobs
     ports:
       - "8084:8081"

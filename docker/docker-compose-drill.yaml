@@ -1,6 +1,7 @@
 version: "3.8"
 services:
   drill:
+    restart: unless-stopped
     networks:
       ozone-analytics:
     image: apache/drill:1.21.1-openjdk-11

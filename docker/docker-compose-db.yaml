@@ -3,7 +3,7 @@ services:
   mysql:
     networks:
       ozone-analytics:
-    restart: on-failure
+    restart: unless-stopped
     image: mariadb:10.3
     command: "mysqld --character-set-server=utf8 --collation-server=utf8_general_ci --log-bin --binlog-format=ROW  --server-id=0 --max_connections=1024"
     environment:
@@ -20,7 +20,7 @@ services:
   postgresql:
     networks:
       ozone-analytics:
-    restart: on-failure
+    restart: unless-stopped
     image: postgres:13
     command: postgres -c wal_level=logical -c max_wal_senders=10 -c max_replication_slots=10
     healthcheck:
