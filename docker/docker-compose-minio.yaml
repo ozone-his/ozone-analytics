@@ -47,6 +47,7 @@ services:
        ACCESS_KEY: ${MINIO_ROOT_USER}
        ACCESS_SECRET: ${MINIO_ROOT_PASSWORD}
        DATA_BUCKET: analytics
+     restart: unless-stopped
 
 
 volumes:

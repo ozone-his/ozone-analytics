@@ -5,7 +5,7 @@ services:
     networks:
       - ozone-analytics
     container_name: "kowl"
-    restart: on-failure
+    restart: unless-stopped
     entrypoint: /bin/sh
     command: -c "echo \"$$KOWL_CONFIG_FILE\" > /tmp/config.yml; /app/kowl"
     ports:
