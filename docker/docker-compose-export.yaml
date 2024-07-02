@@ -3,7 +3,7 @@ services:
   parquet-export:
     networks:
       ozone-analytics:
-    image: mekomsolutions/ozone-flink-parquet-export
+    image: mekomsolutions/ozone-flink-parquet-export:2.3.0
     environment:
       - ANALYTICS_DB_USER=${ANALYTICS_DB_USER}
       - ANALYTICS_DB_PASSWORD=${ANALYTICS_DB_PASSWORD}
