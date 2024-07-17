@@ -24,19 +24,40 @@ The services have been split into multiple files which allows you to start only 
 ![Streaming](readme/Streaming.jpg)
 
 ### Centralized analytics
+
 ![Centralized](readme/Centralized.jpg)
 
 ### To run
 
 `git clone https://github.com/ozone-his/ozone-analytics`
 
-`cd ozone-analytics/docker `
+The project assumes you already have an instance of Ozone FOSS or PRO installed and running. If you don't please refer to the [Ozone Docs] (https://docs.ozone-his.com) You will also need an instance of Ozone Pro Distro, you can use the helper script in the scripts folder.
+
+To fetch the Distro:
+
+```
+cd ozone-analytics/scripts
+```
+
+```
+./fetch-ozone-distro.sh 1.0.0-SNAPSHOT
+```
+
+This will fetch the distro and place it in the `ozone-analytics/scripts` folder under a subfolder `distro`. Once this distro is fetch go into the docker folder:
+
+```
+cd ../docker
+```
 
 ### Export environment variables
+
+#### Export the distro path
+
 ```bash
-export DISTRO_PATH=<path_to_ozonepro_distro>
+export DISTRO_PATH=../scripts
 ```
-The following environment variables assume you are running the project with the databases being part of the project (Meaning you are including `docker-compose-db.yaml`), If you are using external databases please see [Usage with external databases](#usage-with-external-databases) for overriding the hostnames.
+
+#### Export other environment variables
 
 ``` bash
 export ANALYTICS_CONFIG_FILE_PATH=$DISTRO_PATH/distro/configs/analytics/config.yaml;\
@@ -50,7 +71,7 @@ export CONNECT_MYSQL_PASSWORD=3cY8Kve4lGey; \
 export CONNECT_ODOO_DB_PORT=5432; \
 export CONNECT_ODOO_DB_NAME=odoo; \
 export CONNECT_ODOO_DB_USER=odoo; \
-export CONNECT_ODOO_DB_PASSWORD=password \
+export CONNECT_ODOO_DB_PASSWORD=password;\
 export ODOO_DB_PORT=5432; \
 export ODOO_DB_NAME=odoo; \
 export ODOO_DB_USER=odoo; \
@@ -61,90 +82,15 @@ export EXPORT_DESTINATION_TABLES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/
 export EXPORT_SOURCE_QUERIES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/export/queries; \
 export EXPORT_OUTPUT_PATH=./data/parquet; \
 export EXPORT_OUTPUT_TAG=h1; \
-export SUPERSET_CONFIG_PATH=$DISTRO_PATH/configs/superset/ ; \
-export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/configs/superset/assets
+export SUPERSET_CONFIG_PATH=$DISTRO_PATH/distro/configs/superset/ ; \
+export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/distro/configs/superset/assets/ ; \
+export SQL_SCRIPTS_PATH=$DISTRO_PATH/distro/data
 ```
-
-**Note**: The gateway.docker.internal is a special DNS name that resolves to the host machine from within containers. It is only available for Mac and Windows. For Linux, use the docker host IP by default 172.17.0.1
-
-### Streaming and flattening pipelines only (without Superset)
-
-In cases where you don't need to start Superset (for example when you will use the Parquet export job to create Parquet files to later upload onto Minio or S3, or if you want to plug your own BI tool) you can start only the streaming and flattening data pipelines by running:
-
-```bash
-docker compose -f docker-compose-migration.yaml -f docker-compose-db.yaml -f docker-compose-data-pipelines-local.yaml up -d --build
-```
-
-Which will start ;
-
-* [ZooKeeper](https://zookeeper.apache.org/ "ZooKeeper") - Used by Flink for High Availability ensuring we can always recover when a job fails or is stopped. Without this, the Flink job will restart the streaming every time it is stopped and restarted.
-* [Kafka Connect](https://docs.confluent.io/platform/current/connect/ "Kafka Connect")  - Kafka Connect is a tool for scalably and reliably streaming data between Apache Kafka and other systems. In the context of this project, Kafka Connect is used as a means of deploying [Debezium](https://debezium.io/documentation/reference/stable/architecture.html "Debezium").
-* [Kafka](https://kafka.apache.org/ "Kafka") - Used for storing streamed events from MySQL.
-* [Kowl](https://github.com/redpanda-data/kowl "Kowl") - Provides and UI for managing Kafka.
-* [Flink Job Manager](https://nightlies.apache.org/flink/flink-docs-master/docs/internals/job_scheduling/ "Flink Job Manager") - Coordinates the Flink cluster.
-* [Flink Task Manager](https://nightlies.apache.org/flink/flink-docs-master/docs/internals/task_lifecycle/ "Flink Task Manager") - Runs the actual workloads assigned by the Job manager.
-* [MySQL](https://www.mysql.com/ "MySQL") - MySQL instance filled with OpenMRS demo data, used for demo purposes with this project.
-* [PostgresSQL](https://www.postgresql.org/ "PostgresSQL") - The sink database where the streaming pipelines output the flattened data. Once the data is flattened, it can be used directly for analytics by Superset or exported to Parquet for external storage or using any other analytics tool (Tableau, Power BI, Metabase...).
-
-###  Streaming, flattening pipelines and data visualization (with Superset)
-
-To start the complete streaming and flattening suite, including Superset as the BI tool, run:
-
-```bash
-docker compose -f docker-compose-db.yaml -f docker-compose-data-pipelines-local.yaml -f docker-compose-superset.yaml -f docker-compose-superset-ports.yaml  up -d --build
-```
-
-This will start the following services:
-
-* [Redis](https://redis.io/ "Redis") - Used as a background task queue for Superset.
-* [Superset](https://superset.apache.org/ "Superset") - Data exploration and data visualization tool.
-* [Superset Worker](https://superset.apache.org/docs/intro "Superset Worker") - Run Superset background tasks.
-
-
-> NOTE: The streaming jobs may fail for a while during the initial start up as Flink discovers data partitions from Kafka. You can wait for this to sort itself out or you can try to restart the `jobmanager` and `taskmanager` services with `docker compose -f docker-compose-data-pipelines-local.yaml restart jobmanager taskmanager`
-
-### Streaming and flattening pipelines only against an existing deployment
-When you have an existing deployment of Ozone and you want to run the streaming and flattening pipelines against it, you can use the following command:
-
-```bash
-docker compose -f docker-compose-streaming-common.yaml -f docker-compose-migration.yaml up -d
-```
-
-
-
-### Drill-backed analytics server
-
-In cases where you have multiple instances of Ozone deployed in remote locations, you may want to process data onsite with the streaming and flattening pipelines but ship the data to a central repository for analytics. This provides a solution that uses:
-* [Minio](https://min.io/ "Minio") - An S3-compatible object storage server.
-* [Drill](https://drill.apache.org/ "Drill") - A Schema-free SQL Query Engine for Hadoop, NoSQL and Cloud Storage.
-* [Superset](https://superset.apache.org/ "Superset") - Data exploration and data visualization tool.
-* [Superset Worker](https://superset.apache.org/docs/intro "Superset Worker") - Run Superset background tasks.
-
-To start this stack run;
-
-`docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-superset-ports.yaml -f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
-
-
-### Usage with external databases
-To Simplify the setup of the project we have included OpenMRS and Analytics databases for easy testing, in production the OpenMRS and Analytics databases will be external to the project. To use external databases you need to set the following environment variables:
-| Variable|Description |
-|---|----|
-|CONNECT_MYSQL_HOSTNAME|The project uses Kafka connect to get the OpenMRS changes we need to set this to the source OpenMRS MySQL host|
-|CONNECT_MYSQL_PORT|This is the port the source OpenMRS MySQL is listening on|
-|CONNECT_MYSQL_USERNAME|This is the username of a user in the source  OpenMRS MySQL with the privileges `SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAVE, REPLICATION` |
-|CONNECT_MYSQL_PASSWORD|This is the password of `CONNECT_MYSQL_USERNAME`|
-|ANALYTICS_DB_HOST|This is the host of the analytics sink PostgreSQL database |
-|ANALYTICS_DB_PORT|This is the port on which the analytics sink PostgreSQL database is listening on |
-|ANALYTICS_DB_NAME|This is the name of the analytics sink database|
-|ANALYTICS_DB_USER|This is the username for  writing into the analytics sink database|
-|ANALYTICS_DB_PASSWORD|This is the password for `ANALYTICS_DB_PASSWORD`|
-
-example for a source and sink databases listening on the current host, export these variables after the ones in the [To run](#to-run)
 
 For Linux 
 
 ```bash
-export ANALYTICS_DB_HOST=172.17.0.1; \
+export ANALYTICS_DB_HOST=postgresql; \
 export CONNECT_MYSQL_HOSTNAME=172.17.0.1; \
 export CONNECT_ODOO_DB_HOSTNAME=172.17.0.1; \
 export ODOO_DB_HOST=172.17.0.1; \
@@ -153,16 +99,26 @@ export OPENMRS_DB_HOST=172.17.0.1
 For Mac and Windows
 
 ```bash
-export ANALYTICS_DB_HOST=gateway.docker.internal; \
-export CONNECT_MYSQL_HOSTNAME=gateway.docker.internal; \
-export CONNECT_ODOO_DB_HOSTNAME=gateway.docker.internal; \
-export ODOO_DB_HOST=gateway.docker.internal; \
-export OPENMRS_DB_HOST=gateway.docker.internal
+export ANALYTICS_DB_HOST=postgresql; \
+export CONNECT_MYSQL_HOSTNAME=host.docker.internal; \
+export CONNECT_ODOO_DB_HOSTNAME=host.docker.internal; \
+export ODOO_DB_HOST=host.docker.internal; \
+export OPENMRS_DB_HOST=host.docker.internal
 ```
 
-`docker compose -f docker-compose-db.yaml -f docker-compose-streaming-common.yaml docker-compose-superset.yaml -f docker-compose-superset-ports.yaml up -d --build`
+The commands below should be run from the `ozone-analytics/docker` folder and assume you have the environment variables set.
 
-**Note**: We still need the `docker-compose-db.yaml` file as it will start the PostgreSQL database for Superset if you don't need Superset you can ignore `docker-compose-db.yaml` and `docker-compose-superset.yaml`
+### Start Ozone Analytics in Streaming mode
+
+```bash
+docker compose -f docker-compose-db.yaml -f docker-compose-migration.yaml -f docker-compose-streaming-common.yaml -f docker-compose-superset.yaml -f docker-compose-superset-ports.yaml up -d --build
+```
+
+### Start Ozone Analytics Batch mode
+
+```bash
+docker compose -f docker-compose-db.yaml -f docker-compose-migration.yaml -f docker-compose-batch-etl.yaml up
+```
 
 ### Drill-backed analytics server
 
@@ -174,11 +130,16 @@ In cases where you have multiple instances of Ozone deployed in remote locations
 
 To start this stack run;
 
-`docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-superset-ports.yaml-f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build`
+```bash
+docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f docker-compose-superset-ports.yaml -f docker-compose-minio.yaml -f docker-compose-drill.yaml up -d --build
+```
+
 
 ### Running with helper scripts
 The examples above are for running the services manually, we have included helper scripts to simplify the process of running the services. The helper scripts are located in the `scripts` folder. The scripts assume you have an Ozone instance running locally. If you don't follow the instructions [here](#to-run) section to start the services.
-To run the services using the helper scripts you:
+To run the services using the helper scripts you can follow the steps below from the root of the project.:
+
+From the root of the project run the following commands:
 
 ```bash
 cd scripts
@@ -194,7 +155,6 @@ Start the project with streaming pipelines
 ./start.sh
 ```
 
-
 #### Parquet export using an OpenMRS database backup
 
 -  Export the path to the distro
@@ -203,6 +163,18 @@ export ANALYTICS_CONFIG_PATH=<path_to_ozone>
 ```
 
 - Run the flattening helper scripts to flatten and export the data
+
+From the root of the project run the following commands:
+
+```bash
+cd scripts
+```
+Fetch the Ozone Pro Distro
+
+```bash
+./fetch-distro.sh
+```
+
 ```bash
 ./scripts/run-batch-export.sh -m <path to openmrs dump> -d <path to odoo dump> -l <location tag>
 ```
@@ -212,7 +184,7 @@ export ANALYTICS_CONFIG_PATH=<path_to_ozone>
 
 - Run the batch ETL job to transform the data
 ```bash
-docker compose -f docker-compose-migration.yaml -f docker-compose-batch-etl.yaml up
+docker compose -f docker-compose-db.yaml -f docker-compose-migration.yaml -f docker-compose-batch-etl.yaml up
 ```
 - Export data in a Parquet format
 ```bash
@@ -228,4 +200,3 @@ docker compose -f docker-compose-export.yaml up
 | Superset  | http://localhost:8088  | admin/password|
 | Minio   | http://localhost:9000   |minioadmin/minioadmin123|
 | Drill  |  http://localhost:8047 | |
-
