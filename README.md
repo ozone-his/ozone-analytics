@@ -43,7 +43,7 @@ cd ozone-analytics/scripts
 ./fetch-ozone-distro.sh 1.0.0-SNAPSHOT
 ```
 
-This will fetch the distro and place it in the `ozone-analytics/scripts` folder under a subfolder `distro`. Once this distro is fetch go into the docker folder:
+This will fetch the distro and place it in the `ozone-analytics/scripts` folder under a subfolder `distro`. Once this distro is fetched go into the docker folder:
 
 ```
 cd ../docker
