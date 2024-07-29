@@ -37,8 +37,6 @@ services:
     ports:
       - "8084:8081"
     volumes:
-      - ./flink/pipelines/job.properties:/opt/flink/usrlib/job.properties
-      - ./flink/config/flink-conf.yaml:/etc/flink/flink-conf.yaml
       - ${ANALYTICS_QUERIES_PATH}:/analytics/queries
       - ${ANALYTICS_SOURCE_TABLES_PATH}:/analytics/source-tables
       - ${ANALYTICS_CONFIG_FILE_PATH}:/analytics/config.yaml

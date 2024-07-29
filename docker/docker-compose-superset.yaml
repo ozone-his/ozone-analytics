@@ -81,18 +81,6 @@ services:
   postgresql:
     shm_size: 2gb
     environment:
-      # Analytics
-      ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
-      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
-      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
-      # Superset
-      SUPERSET_DB: ${SUPERSET_DB}
-      SUPERSET_DB_USER: ${SUPERSET_DB_USER}
-      SUPERSET_DB_PASSWORD: ${SUPERSET_DB_PASSWORD}
-    volumes:
-      - "${SQL_SCRIPTS_PATH}/postgresql/create_db.sh:/docker-entrypoint-initdb.d/create_db.sh"
-      - "${SQL_SCRIPTS_PATH}/postgresql/analytics:/docker-entrypoint-initdb.d/db/analytics"
-      - "${SQL_SCRIPTS_PATH}/postgresql/superset:/docker-entrypoint-initdb.d/db/superset"
     networks:
       - ozone-analytics
 
