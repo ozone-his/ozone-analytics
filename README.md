@@ -147,7 +147,7 @@ cd scripts
 Fetch the Ozone Pro Distro
 
 ```bash
-./fetch-distro.sh 1.0.0-SNAPSHOT
+./fetch-ozone-distro.sh 1.0.0-SNAPSHOT
 ```
 Start the project with streaming pipelines
 
