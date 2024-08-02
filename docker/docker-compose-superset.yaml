@@ -80,7 +80,6 @@ services:
     
   postgresql:
     shm_size: 2gb
-    environment:
     networks:
       - ozone-analytics
 
