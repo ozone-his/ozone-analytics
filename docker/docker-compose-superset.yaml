@@ -1,5 +1,15 @@
 services:
-
+  env-substitution:
+    image: mekomsolutions/env-substitution
+    networks:
+      - ozone-analytics
+    restart: on-failure
+    environment:
+      - SUPERSET_PUBLIC_URL=https://${SUPERSET_HOSTNAME}
+      - KEYCLOAK_URL=https://${KEYCLOAK_HOSTNAME}
+      - KEYCLOAK_AUTH_SERVER_URL=https://${KEYCLOAK_HOSTNAME}
+    volumes:
+       - "${DISTRO_PATH}:/opt/env-substitution/files"
   superset:
     depends_on:
       redis:
