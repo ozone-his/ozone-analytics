@@ -5,7 +5,7 @@ services:
       - ozone-analytics
     restart: on-failure
     environment:
-      - SUPERSET_PUBLIC_URL=https://${SUPERSET_HOSTNAME}
+      - SUPERSET_URL=https://${SUPERSET_HOSTNAME}
       - KEYCLOAK_URL=https://${KEYCLOAK_HOSTNAME}
       - KEYCLOAK_AUTH_SERVER_URL=https://${KEYCLOAK_HOSTNAME}
       - SUPERSET_CLIENT_SECRET=${SUPERSET_CLIENT_SECRET}
