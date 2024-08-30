@@ -8,6 +8,7 @@ services:
       - SUPERSET_PUBLIC_URL=https://${SUPERSET_HOSTNAME}
       - KEYCLOAK_URL=https://${KEYCLOAK_HOSTNAME}
       - KEYCLOAK_AUTH_SERVER_URL=https://${KEYCLOAK_HOSTNAME}
+      - SUPERSET_CLIENT_SECRET=${SUPERSET_CLIENT_SECRET}
     volumes:
        - "${DISTRO_PATH}:/opt/env-substitution/files"
   superset:
@@ -17,6 +18,8 @@ services:
       postgresql:
         condition: service_started
       superset-init:
+        condition: service_completed_successfully
+      env-substitution:
         condition: service_completed_successfully
     environment: &superset-env
       - DATABASE_HOST=${POSTGRES_DB_HOST}
