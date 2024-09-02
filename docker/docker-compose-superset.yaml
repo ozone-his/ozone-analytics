@@ -39,7 +39,7 @@ services:
       - SUPERSET_CLIENT_SECRET=${SUPERSET_CLIENT_SECRET}
       - SUPERSET_CLIENT_ID=${SUPERSET_CLIENT_ID}
       
-    image: &superset-image mekomsolutions/superset-pro
+    image: &superset-image mekomsolutions/superset-sso
     labels:
       traefik.enable: "true"
       traefik.http.routers.superset.rule: "Host(`${SUPERSET_HOSTNAME}`)"
