@@ -1,16 +1,4 @@
 services:
-  env-substitution:
-    image: mekomsolutions/env-substitution
-    networks:
-      - ozone-analytics
-    restart: on-failure
-    environment:
-      - SUPERSET_URL=https://${SUPERSET_HOSTNAME}
-      - KEYCLOAK_URL=https://${KEYCLOAK_HOSTNAME}
-      - KEYCLOAK_AUTH_SERVER_URL=https://${KEYCLOAK_HOSTNAME}
-      - SUPERSET_CLIENT_SECRET=${SUPERSET_CLIENT_SECRET}
-    volumes:
-       - "${DISTRO_PATH}:/opt/env-substitution/files"
   superset:
     depends_on:
       redis:
@@ -18,7 +6,7 @@ services:
       postgresql:
         condition: service_started
       superset-init:
-        condition: service_completed_successfully
+       condition: service_completed_successfully
       env-substitution:
         condition: service_completed_successfully
     environment: &superset-env
@@ -36,10 +24,12 @@ services:
       - ANALYTICS_DATASOURCE_NAME=${ANALYTICS_DATASOURCE_NAME}
       - SUPERSET_PUBLIC_URL=https://${SUPERSET_HOSTNAME}
       - KEYCLOAK_URL=https://${KEYCLOAK_HOSTNAME}
+      - ISSUER_URL=https://${KEYCLOAK_HOSTNAME}/realms/ozone/
       - SUPERSET_CLIENT_SECRET=${SUPERSET_CLIENT_SECRET}
-      - SUPERSET_CLIENT_ID=${SUPERSET_CLIENT_ID}
+      - SUPERSET_CLIENT_ID=superset
+      - ENABLE_OAUTH=${ENABLE_OAUTH}
       
-    image: &superset-image mekomsolutions/superset-pro
+    image: &superset-image mekomsolutions/superset-sso
     labels:
       traefik.enable: "true"
       traefik.http.routers.superset.rule: "Host(`${SUPERSET_HOSTNAME}`)"
@@ -49,9 +39,11 @@ services:
       - web
       - ozone-analytics
     restart: unless-stopped
-    volumes:
-      - ${SUPERSET_CONFIG_PATH}/:/etc/superset/
-
+    volumes: &superset-volumes
+      - ${SUPERSET_CONFIG_PATH}/superset_config.py:/app/superset_config.py
+      - ${SUPERSET_CONFIG_PATH}/security.py:/app/security.py
+      - ${SUPERSET_CONFIG_PATH}/superset-init.sh:/app/superset-init.sh
+      
   superset-worker:
     command: "celery --app=superset.tasks.celery_app:app worker --pool=gevent -Ofair -n worker1@%h --loglevel=INFO"
     depends_on:
@@ -60,17 +52,16 @@ services:
       postgresql:
         condition: service_started
       superset-init:
-        condition: service_completed_successfully
+       condition: service_completed_successfully
     environment: *superset-env
     image: *superset-image
     restart: unless-stopped
-    volumes:
-      - ${SUPERSET_CONFIG_PATH}/:/etc/superset/
+    volumes: *superset-volumes
     networks:
       - ozone-analytics
     
   superset-init:
-    command: "/etc/superset/superset-init.sh"
+    command: "/app/superset-init.sh"
     depends_on:
       - postgresql
       - redis
@@ -78,7 +69,9 @@ services:
     image: *superset-image
     restart: on-failure
     volumes:
-      - ${SUPERSET_CONFIG_PATH}/:/etc/superset/
+      - ${SUPERSET_CONFIG_PATH}/superset_config.py:/app/superset_config.py
+      - ${SUPERSET_CONFIG_PATH}/security.py:/app/security.py
+      - ${SUPERSET_CONFIG_PATH}/superset-init.sh:/app/superset-init.sh
       - ${SUPERSET_DASHBOARDS_PATH}/:/dashboards/
     networks:
       - ozone-analytics
