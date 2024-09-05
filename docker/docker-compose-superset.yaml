@@ -7,8 +7,6 @@ services:
         condition: service_started
       superset-init:
        condition: service_completed_successfully
-      env-substitution:
-        condition: service_completed_successfully
     environment: &superset-env
       - DATABASE_HOST=${POSTGRES_DB_HOST}
       - DATABASE_DB=${SUPERSET_DB}
