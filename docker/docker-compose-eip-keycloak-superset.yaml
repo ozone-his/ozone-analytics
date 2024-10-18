@@ -13,6 +13,7 @@ services:
       - SUPERSET_CLIENT_UUID=${SUPERSET_CLIENT_UUID}
       - SUPERSET_CLIENT_SECRET=${SUPERSET_CLIENT_SECRET}
       - KEYCLOAK_ADMIN_SA_CLIENT_SECRET=${KEYCLOAK_ADMIN_SA_CLIENT_SECRET}
+    
   # Keycloak - Superset integration service
   eip-keycloak-superset:
     image: mekomsolutions/eip-pro-client
