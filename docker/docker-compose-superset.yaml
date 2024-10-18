@@ -43,7 +43,7 @@ services:
       - ${SUPERSET_CONFIG_PATH}/superset-init.sh:/app/superset-init.sh
       
   superset-worker:
-    command: "celery --app=superset.tasks.celery_app:app worker --pool=gevent -Ofair -n worker1@%h --loglevel=INFO"
+    command: "celery --app=superset.tasks.celery_app:app worker -Ofair -n worker1@%h --loglevel=INFO"
     depends_on:
       redis:
         condition: service_started

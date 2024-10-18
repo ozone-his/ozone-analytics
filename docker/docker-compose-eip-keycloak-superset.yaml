@@ -1,0 +1,42 @@
+services:
+  env-substitution:
+    image: mekomsolutions/env-substitution
+    networks:
+      - ozone-analytics
+    restart: on-failure
+    volumes:
+       - "${DISTRO_PATH}:/opt/env-substitution/files"
+    environment:
+      - KEYCLOAK_URL=https://${KEYCLOAK_HOSTNAME}
+      - HOST_URL=https://${O3_HOSTNAME}
+      - KEYCLOAK_AUTH_SERVER_URL=https://${KEYCLOAK_HOSTNAME}
+      - SUPERSET_CLIENT_UUID=${SUPERSET_CLIENT_UUID}
+      - SUPERSET_CLIENT_SECRET=${SUPERSET_CLIENT_SECRET}
+      - KEYCLOAK_ADMIN_SA_CLIENT_SECRET=${KEYCLOAK_ADMIN_SA_CLIENT_SECRET}
+    
+  # Keycloak - Superset integration service
+  eip-keycloak-superset:
+    image: mekomsolutions/eip-pro-client
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_SERVER_URL: https://${KEYCLOAK_HOSTNAME}
+      KEYCLOAK_SA_CLIENT_ID: keycloak-admin-sa
+      SUPERSET_USERNAME: ${SUPERSET_ADMIN_USERNAME}
+      SUPERSET_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}
+      SUPERSET_SERVER_URL: http://superset:8088
+      SUPERSET_REFRESH: "true"
+      SUPERSET_CLIENT_UUID: ${SUPERSET_CLIENT_UUID}
+      SUPERSET_CLIENT_SECRET: ${SUPERSET_CLIENT_SECRET}
+      KEYCLOAK_ADMIN_SA_CLIENT_SECRET: ${KEYCLOAK_ADMIN_SA_CLIENT_SECRET}
+    volumes:
+      - "${EIP_KEYCLOAK_SUPERSET_ROUTES_PATH}/:/eip-pro-client/routes"
+      - "${EIP_KEYCLOAK_SUPERSET_PROPERTIES_PATH}/:/eip-pro-client/config"
+    networks:
+      - ozone-analytics
+    depends_on:
+      superset:
+        condition: service_healthy
+      env-substitution:
+        condition: service_completed_successfully
+    ports:
+      - "9083:8080"
