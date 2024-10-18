@@ -82,9 +82,11 @@ export EXPORT_DESTINATION_TABLES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/
 export EXPORT_SOURCE_QUERIES_PATH=$DISTRO_PATH/distro/configs/analytics/dsl/export/queries; \
 export EXPORT_OUTPUT_PATH=./data/parquet; \
 export EXPORT_OUTPUT_TAG=h1; \
-export SUPERSET_CONFIG_PATH=$DISTRO_PATH/distro/configs/superset/ ; \
-export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/distro/configs/superset/assets/ ; \
-export SQL_SCRIPTS_PATH=$DISTRO_PATH/distro/data
+export SUPERSET_CONFIG_PATH=$DISTRO_PATH/distro/configs/superset/; \
+export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/distro/configs/superset/assets/; \
+export EIP_KEYCLOAK_SUPERSET_ROUTES_PATH=$DISTRO_PATH/distro/binaries/eip-keycloak-superset; \
+export EIP_KEYCLOAK_SUPERSET_PROPERTIES_PATH=$DISTRO_PATH/distro/configs/eip-keycloak-superset/properties; \
+export SQL_SCRIPTS_PATH=$DISTRO_PATH/distro/data; \
 ```
 
 For Linux 

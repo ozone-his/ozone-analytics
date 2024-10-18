@@ -51,6 +51,8 @@ function exportEnvs () {
     export SQL_SCRIPTS_PATH=$DISTRO_PATH/data
     export SUPERSET_CONFIG_PATH=$DISTRO_PATH/configs/superset/
     export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/configs/superset/assets/
+    export EIP_KEYCLOAK_SUPERSET_ROUTES_PATH=$DISTRO_PATH/binaries/eip-keycloak-superset
+    export EIP_KEYCLOAK_SUPERSET_PROPERTIES_PATH=$DISTRO_PATH/configs/eip-keycloak-superset/properties
     export JAVA_OPTS='-Xms2048m -Xmx8192m';
 
     echo "→ ANALYTICS_CONFIG_FILE_PATH=$ANALYTICS_CONFIG_FILE_PATH"
@@ -80,6 +82,8 @@ function exportEnvs () {
     echo "→ SQL_SCRIPTS_PATH=$SQL_SCRIPTS_PATH"
     echo "→ SUPERSET_CONFIG_PATH=$SUPERSET_CONFIG_PATH"
     echo "→ SUPERSET_DASHBOARDS_PATH=$SUPERSET_DASHBOARDS_PATH"
+    echo "→ EIP_KEYCLOAK_SUPERSET_ROUTES_PATH=$EIP_KEYCLOAK_SUPERSET_ROUTES_PATH"
+    echo "→ EIP_KEYCLOAK_SUPERSET_PROPERTIES_PATH=$EIP_KEYCLOAK_SUPERSET_PROPERTIES_PATH"
     echo "→ JAVA_OPTS=$JAVA_OPTS"
 }
 
@@ -89,9 +93,9 @@ function setDockerHost {
         export DOCKER_GATEWAY_HOST="172.17.0.1" 
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         # Mac OSX
-        export DOCKER_GATEWAY_HOST="gateway.docker.internal"
+        export DOCKER_GATEWAY_HOST="host.docker.internal"
     fi
-    export DOCKER_GATEWAY_HOST="gateway.docker.internal"
+    export DOCKER_GATEWAY_HOST="host.docker.internal"
     export CONNECT_MYSQL_HOSTNAME=$DOCKER_GATEWAY_HOST
     export CONNECT_ODOO_DB_HOSTNAME=$DOCKER_GATEWAY_HOST
     export ODOO_DB_HOST=$DOCKER_GATEWAY_HOST
@@ -123,4 +127,16 @@ function setTraefikHostnames {
     export KEYCLOAK_HOSTNAME=auth-"${IP_WITH_DASHES}.traefik.me"
     echo "→ SUPERSET_HOSTNAME=$SUPERSET_HOSTNAME"
     echo "→ KEYCLOAK_HOSTNAME=$KEYCLOAK_HOSTNAME"
+}
+
+function setDockerComposeCLIOptions () {
+    # Parse 'docker-compose-files.txt' to get the list of Docker Compose files to run
+    dockerComposeFiles=$(cat docker-compose-files.txt)
+    for file in ${dockerComposeFiles}
+    do
+        export dockerComposeCLIOptions="$dockerComposeCLIOptions -f ../docker/$file"
+    done
+    if [ "$withOzoneSSO" = "true" ]; then
+        export dockerComposeCLIOptions="$dockerComposeCLIOptions --env-file ../docker/.env --env-file ../docker/secrets.env  -f ../docker-compose-eip-keycloak-superset.yaml"
+    fi
 }

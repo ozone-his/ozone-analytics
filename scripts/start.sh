@@ -15,6 +15,8 @@ setTraefikIP
 
 setTraefikHostnames
 
-echo $CONNECT_ODOO_DB_NAME
+setDockerComposeCLIOptions
 
-docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-migration.yaml -f ../docker/docker-compose-streaming-common.yaml -f ../docker/docker-compose-kowl.yaml  -f ../docker/docker-compose-superset.yaml -f ../docker/docker-compose-superset-ports.yaml up -d
+echo $dockerComposeCLIOptions
+
+docker compose -p ozone-analytics $dockerComposeCLIOptions up -d --build --remove-orphans
