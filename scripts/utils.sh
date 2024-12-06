@@ -49,7 +49,7 @@ function exportEnvs () {
     export ANALYTICS_QUERIES_PATH=$ANALYTICS_CONFIG_PATH/dsl/flattening/queries
     export ANALYTICS_DESTINATION_TABLES_MIGRATIONS_PATH=$ANALYTICS_CONFIG_PATH/liquibase/analytics
     export SQL_SCRIPTS_PATH=$DISTRO_PATH/data
-    export SUPERSET_CONFIG_PATH=$DISTRO_PATH/configs/superset/
+    export SUPERSET_CONFIG_PATH=../docker/superset/config
     export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/configs/superset/assets/
     export JAVA_OPTS='-Xms2048m -Xmx8192m';
 
