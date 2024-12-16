@@ -21,8 +21,8 @@ services:
       - ANALYTICS_DB_HOST=${ANALYTICS_DB_HOST}
       - ANALYTICS_DATASOURCE_NAME=${ANALYTICS_DATASOURCE_NAME}
       - SUPERSET_PUBLIC_URL=https://${SUPERSET_HOSTNAME}
-      - KEYCLOAK_URL=${KEYCLOAK_URL}
-      - ISSUER_URL=${KEYCLOAK_URL}/realms/ozone/
+      - KEYCLOAK_URL=https://${KEYCLOAK_HOSTNAME}
+      - ISSUER_URL=https://${KEYCLOAK_HOSTNAME}/realms/ozone/
       - SUPERSET_CLIENT_SECRET=${SUPERSET_CLIENT_SECRET}
       - SUPERSET_CLIENT_ID=superset
       - ENABLE_OAUTH=${ENABLE_OAUTH}
@@ -41,9 +41,9 @@ services:
       - ${SUPERSET_CONFIG_PATH}/superset_config.py:/app/superset_config.py
       - ${SUPERSET_CONFIG_PATH}/security.py:/app/security.py
       - ${SUPERSET_CONFIG_PATH}/superset-init.sh:/app/superset-init.sh
-      
+
   superset-worker:
-    command: "celery --app=superset.tasks.celery_app:app worker --pool=gevent -Ofair -n worker1@%h --loglevel=INFO"
+    command: "celery --app=superset.tasks.celery_app:app worker -Ofair -n worker1@%h --loglevel=INFO"
     depends_on:
       redis:
         condition: service_started
