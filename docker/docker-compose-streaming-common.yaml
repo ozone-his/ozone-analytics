@@ -84,7 +84,7 @@ services:
       - CONNECT_MYSQL_PASSWORD=${CONNECT_MYSQL_PASSWORD:-${CONNECT_MYSQL_PASSWORD}}
       - CONNECT_MYSQL_PORT=${CONNECT_MYSQL_PORT:-${CONNECT_MYSQL_PORT}}
       - CONNECT_MYSQL_SERVER_ID=37991
-      - CONNECT_MYSQL_SERVER_NAME=openmrs
+      - CONNECT_MYSQL_SERVER_NAME=emr
       - CONNECT_MYSQL_INCLUDE_LIST=openmrs
       - CONNECT_TABLE_EXCLUDE_LIST=openmrs.audit_log
       - CONNECT_MYSQL_HISTROY_TOPIC=dbhistory.openmrs
@@ -93,7 +93,7 @@ services:
       - CONNECT_ODOO_DB_USERNAME=${CONNECT_ODOO_DB_USERNAME:-${POSTGRES_USER}}
       - CONNECT_ODOO_DB_PASSWORD=${CONNECT_ODOO_DB_PASSWORD:-${POSTGRES_PASSWORD}}
       - CONNECT_ODOO_DB_PORT=${CONNECT_ODOO_DB_PORT:-5432}
-      - CONNECT_ODOO_DB_SERVER_NAME=odoo
+      - CONNECT_ODOO_DB_SERVER_NAME=erp
       - CONNECT_ODOO_DB_INCLUDE_LIST=odoo
 
   connect-setup:
@@ -129,7 +129,7 @@ services:
          condition: service_started
        kafka-setup:
          condition: service_completed_successfully
-    labels: 
+    labels:
       - kompose.service.group=flink-manager
     environment:
       - ANALYTICS_SOURCE_TABLES_PATH=/analytics/source-tables
