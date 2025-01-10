@@ -1,0 +1,23 @@
+services:
+  proxy:
+    image: nginx:1.25-alpine
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://proxy:80"]
+    networks:
+      - ozone-analytics
+      - web
+    ports:
+      - "8088:8088"
+    restart: unless-stopped
+    volumes:
+      - "${PROXY_TLS_CERTS_PATH:-proxy-tls-certs}:/etc/tls"
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./superset.nginx.conf:/etc/nginx/conf.d/superset.nginx.conf
+
+networks:
+  ozone-analytics:
+  web:
+    external: true
+
+volumes:
+  proxy-tls-certs: ~

@@ -20,9 +20,9 @@ services:
       - ANALYTICS_DB_USER=${ANALYTICS_DB_USER}
       - ANALYTICS_DB_HOST=${ANALYTICS_DB_HOST}
       - ANALYTICS_DATASOURCE_NAME=${ANALYTICS_DATASOURCE_NAME}
-      - SUPERSET_PUBLIC_URL=https://${SUPERSET_HOSTNAME}
-      - KEYCLOAK_URL=https://${KEYCLOAK_HOSTNAME}
-      - ISSUER_URL=https://${KEYCLOAK_HOSTNAME}/realms/ozone/
+      - SUPERSET_PUBLIC_URL=${SCHEME}://${SUPERSET_HOSTNAME}
+      - KEYCLOAK_URL=${SCHEME}://${KEYCLOAK_HOSTNAME}
+      - ISSUER_URL=${SCHEME}://${KEYCLOAK_HOSTNAME}/realms/ozone/
       - SUPERSET_CLIENT_SECRET=${SUPERSET_CLIENT_SECRET}
       - SUPERSET_CLIENT_ID=superset
       - ENABLE_OAUTH=${ENABLE_OAUTH}
@@ -93,4 +93,3 @@ networks:
   ozone-analytics:
   web:
     external: true
-    name: web

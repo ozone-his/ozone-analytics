@@ -52,6 +52,7 @@ function exportEnvs () {
     export SUPERSET_CONFIG_PATH=../docker/superset/config
     export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/configs/superset/assets/
     export JAVA_OPTS='-Xms2048m -Xmx8192m';
+    export SCHEME=https
 
     echo "→ ANALYTICS_CONFIG_FILE_PATH=$ANALYTICS_CONFIG_FILE_PATH"
     echo "→ ANALYTICS_DB_PORT=$ANALYTICS_DB_PORT"
@@ -116,11 +117,38 @@ function setTraefikIP {
     fi
 }
 
+function exportHostIP() {
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Linux
+        export HOST_IP_ADDRESS=$(hostname -I | awk '{print $1}')
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        # Mac OSX
+        export HOST_IP_ADDRESS=$(ipconfig getifaddr en0)
+    else
+        echo "$ERROR Unsupported OS type: $OSTYPE"
+        return 1
+    fi
+    echo "$INFO IP address set to: $HOST_IP_ADDRESS"
+}
+
 function setTraefikHostnames {
     echo "$INFO Exporting Traefik hostnames..."
 
     export SUPERSET_HOSTNAME=analytics-"${IP_WITH_DASHES}.traefik.me"
     export KEYCLOAK_HOSTNAME=auth-"${IP_WITH_DASHES}.traefik.me"
+
     echo "→ SUPERSET_HOSTNAME=$SUPERSET_HOSTNAME"
     echo "→ KEYCLOAK_HOSTNAME=$KEYCLOAK_HOSTNAME"
+}
+
+function setNginxHostnames() {
+    echo "$INFO Exporting Nginx hostnames..."
+
+    export SUPERSET_HOSTNAME="${HOST_IP_ADDRESS:-localhost}:8088"
+    export KEYCLOAK_HOSTNAME="${HOST_IP_ADDRESS:-localhost}:8084"
+    export SCHEME=http
+
+    echo "→ SUPERSET_HOSTNAME=$SUPERSET_HOSTNAME"
+    echo "→ KEYCLOAK_HOSTNAME=$KEYCLOAK_HOSTNAME"
+    echo "→ SCHEME=$SCHEME"
 }

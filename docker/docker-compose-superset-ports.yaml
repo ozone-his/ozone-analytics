@@ -1,4 +1,0 @@
-services:
-  superset:
-    ports:
-      - "8188:8088"
