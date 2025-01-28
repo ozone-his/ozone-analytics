@@ -73,7 +73,7 @@ CELERY_CONFIG = CeleryConfig
 SQLLAB_CTAS_NO_LIMIT = True
 
 # Session lifetime set to 86400 seconds (24 hours), which is a standard duration that balances security and user convenience.
-SECONDS_PER_DAY = 60 * 60 * 24 # 60 seconds * 60 minutes * 24 hours
+SECONDS_PER_DAY = 60 * 60 * 24  # Seconds per minute * minutes per hour * hours per day
 PERMANENT_SESSION_LIFETIME = SECONDS_PER_DAY
 
 class ReverseProxied(object):

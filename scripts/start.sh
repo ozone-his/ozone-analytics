@@ -29,24 +29,30 @@ fi
 echo "$CONNECT_ODOO_DB_NAME"
 
 # Run Ozone Analytics Services
-dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-superset.yaml -f ../docker/docker-compose-superset-ports.yaml up -d"
+#dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-superset.yaml up -d"
+dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-migration.yaml -f ../docker/docker-compose-streaming-common.yaml -f ../docker/docker-compose-kowl.yaml  -f ../docker/docker-compose-superset.yaml"
 echo "$INFO Running Ozone Analytics Services..."
 echo "$dockerComposeCommand"
 $dockerComposeCommand
 
+# Run Nginx proxy
+if [ "$TRAEFIK" == "true" ]; then
+    echo "$INFO \$TRAEFIK=true, skip running Nginx Proxy..."
+    echo "$INFO Assuming that Traefik is running on the host machine..."
+  else
+    echo "$INFO \$TRAEFIK!=true, running Nginx Proxy..."
+    docker compose -p ozone-analytics -f ../docker/proxy/docker-compose-nginx.yaml up -d
+    echo "$INFO Nginx is running!"
+fi
+
+# Wait for the services to start
+echo "$INFO Waiting for the services to start..."
+sleep 10 # Wait for 10 seconds
 
 # Display Access URLs
 echo "$INFO Ozone Analytics Services are running!"
-echo "$INFO ┌──────────────────────────────────────────────"
-echo "$INFO │ Access URLs"
-echo "$INFO ├──────────────────────────────────────────────"
-echo "$INFO │ Superset: $SCHEME://$SUPERSET_HOSTNAME"
-if [ "$ENABLE_OAUTH" != "true" ]; then
-    echo "$INFO │ Credentials: admin / password"
-else
-    echo "$INFO │ Credentials: jdoe / password"
-fi
-echo "$INFO ├──────────────────────────────────────────────"
-echo "$INFO │ Keycloak: $SCHEME://$KEYCLOAK_HOSTNAME"
-echo "$INFO │ Credentials: admin / password"
-echo "$INFO └──────────────────────────────────────────────"
+echo "$INFO Access URLs:"
+echo "$INFO Superset: $SCHEME://$SUPERSET_HOSTNAME"
+echo "$INFO Credentials: $([ "$ENABLE_OAUTH" != "true" ] && echo "admin" || echo "jdoe") / password"
+echo "$INFO Keycloak: $SCHEME://$KEYCLOAK_HOSTNAME"
+echo "$INFO Keycloak credentials: admin / password"
