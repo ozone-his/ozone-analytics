@@ -3,14 +3,7 @@ set -e
 
 source utils.sh
 
-# Export the DISTRO_PATH variable
-setupDirs
-
-# Export the paths variables to point to distro artifacts
-exportEnvs
-
-setTraefikIP
-
-setTraefikHostnames
-
+echo "$INFO Destroying Ozone Analytics Services..."
+# Stop and remove the containers
 docker compose -p ozone-analytics down -v
+echo "$INFO Ozone Analytics Services destroyed!"

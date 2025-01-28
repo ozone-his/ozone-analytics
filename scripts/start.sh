@@ -29,19 +29,24 @@ fi
 echo "$CONNECT_ODOO_DB_NAME"
 
 # Run Ozone Analytics Services
-dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-migration.yaml -f ../docker/docker-compose-streaming-common.yaml -f ../docker/docker-compose-kowl.yaml -f ../docker/docker-compose-superset.yaml up -d"
+dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-superset.yaml -f ../docker/docker-compose-superset-ports.yaml up -d"
 echo "$INFO Running Ozone Analytics Services..."
 echo "$dockerComposeCommand"
 $dockerComposeCommand
 
-# Run the Nginx Proxy service, if $TRAEFIK!=true
-if [ "$TRAEFIK" != "true" ]; then
-    dockerComposeProxyCommand="docker compose -p ozone-analytics -f ../docker/proxy/docker-compose-nginx.yaml up -d"
-    echo "$INFO Running Nginx proxy service (\$TRAEFIK!=true)..."
-    echo ""
-    echo "$dockerComposeProxyCommand"
-    echo ""
-    ($dockerComposeProxyCommand)
+
+# Display Access URLs
+echo "$INFO Ozone Analytics Services are running!"
+echo "$INFO ┌──────────────────────────────────────────────"
+echo "$INFO │ Access URLs"
+echo "$INFO ├──────────────────────────────────────────────"
+echo "$INFO │ Superset: $SCHEME://$SUPERSET_HOSTNAME"
+if [ "$ENABLE_OAUTH" != "true" ]; then
+    echo "$INFO │ Credentials: admin / password"
 else
-    echo "$INFO Skipping running Nginx proxy... (\$TRAEFIK=true)"
+    echo "$INFO │ Credentials: jdoe / password"
 fi
+echo "$INFO ├──────────────────────────────────────────────"
+echo "$INFO │ Keycloak: $SCHEME://$KEYCLOAK_HOSTNAME"
+echo "$INFO │ Credentials: admin / password"
+echo "$INFO └──────────────────────────────────────────────"

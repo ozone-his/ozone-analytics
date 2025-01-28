@@ -1,9 +1,7 @@
 import logging
 import os
-from dotenv import load_dotenv
 from cachelib import RedisCache
 
-from cachelib.file import FileSystemCache
 logger = logging.getLogger()
 
 def password_from_env(url):
@@ -53,7 +51,6 @@ REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", 0)
 REDIS_RESULTS_DB = get_env_variable("REDIS_CELERY_DB", 1)
 
 RESULTS_BACKEND = RedisCache(host=REDIS_HOST, port=REDIS_PORT, key_prefix='superset_results')
-# RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
 class CeleryConfig(object):
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
@@ -74,7 +71,10 @@ CACHE_CONFIG = {
 
 CELERY_CONFIG = CeleryConfig
 SQLLAB_CTAS_NO_LIMIT = True
-PERMANENT_SESSION_LIFETIME = 86400
+
+# Session lifetime set to 86400 seconds (24 hours), which is a standard duration that balances security and user convenience.
+SECONDS_PER_DAY = 60 * 60 * 24 # 60 seconds * 60 minutes * 24 hours
+PERMANENT_SESSION_LIFETIME = SECONDS_PER_DAY
 
 class ReverseProxied(object):
 
@@ -95,7 +95,7 @@ class ReverseProxied(object):
         return self.app(environ, start_response)
 
 
-ADDITIONAL_MIDDLEWARE = [ReverseProxied, ]
+ADDITIONAL_MIDDLEWARE = [ReverseProxied]
 ENABLE_PROXY_FIX = True
 
 # Enable the security manager API.
@@ -106,24 +106,28 @@ if os.getenv("ENABLE_OAUTH") == "true":
     from security import CustomSecurityManager
     AUTH_ROLES_SYNC_AT_LOGIN = True
     AUTH_USER_REGISTRATION = True
-    AUTH_USER_REGISTRATION_ROLE = "Admin"
+    AUTH_USER_REGISTRATION_ROLE = "Gamma"
     CUSTOM_SECURITY_MANAGER = CustomSecurityManager
-    LOGOUT_REDIRECT_URL = os.environ.get("SUPERSET_URL")
+    LOGOUT_REDIRECT_URL = os.environ.get("SUPERSET_PUBLIC_URL")
     AUTH_TYPE = AUTH_OAUTH
     OAUTH_PROVIDERS = [
         {
             'name': 'keycloak',
-            'token_key': 'access_token',  # Name of the token in the response of access_token_url
-            'icon': 'fa-key',   # Icon for the provider
+            'token_key': 'access_token',
+            'icon': 'fa-key',
             'remote_app': {
-                'client_id': os.environ.get("SUPERSET_CLIENT_ID","superset"),  # Client Id (Identify Superset application)
-                'client_secret': os.environ.get("SUPERSET_CLIENT_SECRET"),  # Secret for this Client Id (Identify Superset application)
+                'client_id': os.environ.get("SUPERSET_CLIENT_ID","superset"),
+                'client_secret': os.environ.get("SUPERSET_CLIENT_SECRET"),
                 'api_base_url': os.environ.get("ISSUER_URL").rstrip('/') + "/protocol/openid-connect/",
                 'client_kwargs': {
                     'scope': 'openid profile email',
                 },
-                'logout_redirect_uri': os.environ.get("SUPERSET_URL"),
-                'server_metadata_url': os.environ.get("ISSUER_URL").rstrip('/') + '/.well-known/openid-configuration',  # URL to get metadata from
+                'request_token_params': {
+                    'code_challenge_method': 'S256'
+                },
+                'access_token_url': os.environ.get("ISSUER_URL").rstrip('/') + "/protocol/openid-connect/token",
+                'logout_redirect_uri': os.environ.get("SUPERSET_PUBLIC_URL"),
+                'server_metadata_url': os.environ.get("ISSUER_URL").rstrip('/') + '/.well-known/openid-configuration',
             }
         }
     ]
