@@ -30,7 +30,7 @@ echo "$CONNECT_ODOO_DB_NAME"
 
 # Run Ozone Analytics Services
 #dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-superset.yaml up -d"
-dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-migration.yaml -f ../docker/docker-compose-streaming-common.yaml -f ../docker/docker-compose-kowl.yaml  -f ../docker/docker-compose-superset.yaml"
+dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-migration.yaml -f ../docker/docker-compose-streaming-common.yaml -f ../docker/docker-compose-kowl.yaml  -f ../docker/docker-compose-superset.yaml up -d"
 echo "$INFO Running Ozone Analytics Services..."
 echo "$dockerComposeCommand"
 $dockerComposeCommand
@@ -52,7 +52,5 @@ sleep 10 # Wait for 10 seconds
 # Display Access URLs
 echo "$INFO Ozone Analytics Services are running!"
 echo "$INFO Access URLs:"
-echo "$INFO Superset: $SCHEME://$SUPERSET_HOSTNAME"
-echo "$INFO Credentials: $([ "$ENABLE_OAUTH" != "true" ] && echo "admin" || echo "jdoe") / password"
-echo "$INFO Keycloak: $SCHEME://$KEYCLOAK_HOSTNAME"
-echo "$INFO Keycloak credentials: admin / password"
+echo "$INFO Superset: $SCHEME://$SUPERSET_HOSTNAME ($([ "$ENABLE_OAUTH" != "true" ] && echo "admin" || echo "jdoe") / password)"
+echo "$INFO Keycloak: $SCHEME://$KEYCLOAK_HOSTNAME (admin / password)"
