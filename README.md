@@ -111,7 +111,7 @@ The commands below should be run from the `ozone-analytics/docker` folder and as
 ### Start Ozone Analytics in Streaming mode
 
 ```bash
-docker compose -f docker-compose-db.yaml -f docker-compose-migration.yaml -f docker-compose-streaming-common.yaml -f docker-compose-superset.yaml -f docker-compose-superset-ports.yaml up -d --build
+docker compose -f docker-compose-db.yaml -f docker-compose-migration.yaml -f docker-compose-streaming-common.yaml -f docker-compose-superset.yaml -f docker-compose-superset-ports.yaml -f docker-compose-minio.yaml up -d --build
 ```
 
 ### Start Ozone Analytics Batch mode

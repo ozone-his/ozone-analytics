@@ -90,9 +90,9 @@ function setDockerHost {
         export DOCKER_GATEWAY_HOST="172.17.0.1" 
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         # Mac OSX
-        export DOCKER_GATEWAY_HOST="gateway.docker.internal"
+        export DOCKER_GATEWAY_HOST="host.docker.internal"
     fi
-    export DOCKER_GATEWAY_HOST="gateway.docker.internal"
+    export DOCKER_GATEWAY_HOST="host.docker.internal"
     export CONNECT_MYSQL_HOSTNAME=$DOCKER_GATEWAY_HOST
     export CONNECT_ODOO_DB_HOSTNAME=$DOCKER_GATEWAY_HOST
     export ODOO_DB_HOST=$DOCKER_GATEWAY_HOST

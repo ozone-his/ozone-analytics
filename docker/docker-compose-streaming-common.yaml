@@ -118,7 +118,7 @@ services:
     restart: unless-stopped
     image: mekomsolutions/ozone-flink-jobs
     ports:
-      - "8084:8081"
+      - "8085:8081"
       - "9250:9250"
     depends_on:
        analytics-migration:
@@ -160,6 +160,10 @@ services:
       - TASK_MANAGER_SLOTS=${TASK_MANAGER_SLOTS:-20}
       - TASK_PARALLELISM=${TASK_PARALLELISM:-1}
       - MANAGED_MEMORY_SIZE=${MANAGED_MEMORY_SIZE:-1g}
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL}
+      - FLINK_STATE_BUCKET=${FLINK_STATE_BUCKET}
     volumes:
       - flink-shared-data:/tmp
       - ./data:/data
