@@ -98,7 +98,7 @@ services:
 
   connect-setup:
     restart: on-failure
-    image: mekomsolutions/ozone-analytics-setup-connect:2.6.0
+    image: mekomsolutions/ozone-analytics-setup-connect
     networks:
       ozone-analytics:
     depends_on:
@@ -116,7 +116,7 @@ services:
     networks:
       ozone-analytics:
     restart: unless-stopped
-    image: mekomsolutions/ozone-flink-jobs:2.6.0
+    image: mekomsolutions/ozone-flink-jobs
     ports:
       - "8085:8081"
       - "9250:9250"
