@@ -27,7 +27,7 @@ services:
       - SUPERSET_CLIENT_ID=superset
       - ENABLE_OAUTH=${ENABLE_OAUTH}
       
-    image: &superset-image mekomsolutions/superset-sso
+    image: &superset-image mekomsolutions/superset-sso:4.0.1-1.0.0
     labels:
       traefik.enable: "true"
       traefik.http.routers.superset.rule: "Host(`${SUPERSET_HOSTNAME}`)"
