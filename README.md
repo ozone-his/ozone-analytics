@@ -40,7 +40,7 @@ cd ozone-analytics/scripts
 ```
 
 ```
-./fetch-ozone-distro.sh 1.0.0-SNAPSHOT
+./fetch-ozone-distro.sh 1.0.0-alpha.13
 ```
 
 This will fetch the distro and place it in the `ozone-analytics/scripts` folder under a subfolder `distro`. Once this distro is fetched go into the docker folder:
@@ -147,7 +147,7 @@ cd scripts
 Fetch the Ozone Pro Distro
 
 ```bash
-./fetch-ozone-distro.sh 1.0.0-SNAPSHOT
+./fetch-ozone-distro.sh 1.0.0-alpha.13
 ```
 Start the project with streaming pipelines
 
