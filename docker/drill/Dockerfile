@@ -1,4 +1,4 @@
-FROM apache/drill:1.21.1
+FROM apache/drill
 
 USER root
 
