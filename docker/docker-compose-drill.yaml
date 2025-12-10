@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     networks:
       ozone-analytics:
-    image: apache/drill:1.21.1-openjdk-11
+    image: apache/drill:1.21.2-openjdk-11
     ports:
       - "8047:8047"
     stdin_open: true
