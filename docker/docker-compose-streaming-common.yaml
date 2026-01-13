@@ -5,6 +5,7 @@ services:
       ozone-analytics:
     restart: unless-stopped
     image: debezium/zookeeper:${DEBEZIUM_VERSION}
+    platform: linux/amd64
     ports:
      - 2181:2181
      - 2888:2888
@@ -17,6 +18,7 @@ services:
   kafka:
     restart: unless-stopped
     image: debezium/kafka:${DEBEZIUM_VERSION}
+    platform: linux/amd64
     networks:
       ozone-analytics:
     ports:
@@ -44,6 +46,7 @@ services:
       ozone-analytics:
     restart: on-failure
     image: debezium/kafka:${DEBEZIUM_VERSION}
+    platform: linux/amd64
     command:
       - /bin/bash
       - -c
@@ -62,6 +65,7 @@ services:
   connect:
     restart: unless-stopped
     image: debezium/connect:${DEBEZIUM_VERSION}
+    platform: linux/amd64
     networks:
       ozone-analytics:
     ports:

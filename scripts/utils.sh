@@ -17,7 +17,7 @@ function setupDirs () {
     export DISTRO_PATH=$OZONE_DIR
     echo "→ DISTRO_PATH=$DISTRO_PATH"
 
-    export ANALYTICS_CONFIG_PATH=$DISTRO_PATH/configs/analytics
+    export ANALYTICS_CONFIG_PATH=$DISTRO_PATH/distro/configs/analytics
     echo "→ ANALYTICS_CONFIG_PATH=$ANALYTICS_CONFIG_PATH"
 }
 
@@ -48,9 +48,9 @@ function exportEnvs () {
     export ANALYTICS_SOURCE_TABLES_PATH=$ANALYTICS_CONFIG_PATH/dsl/flattening/tables
     export ANALYTICS_QUERIES_PATH=$ANALYTICS_CONFIG_PATH/dsl/flattening/queries
     export ANALYTICS_DESTINATION_TABLES_MIGRATIONS_PATH=$ANALYTICS_CONFIG_PATH/liquibase/analytics
-    export SQL_SCRIPTS_PATH=$DISTRO_PATH/data
+    export SQL_SCRIPTS_PATH=$DISTRO_PATH/distro/data
     export SUPERSET_CONFIG_PATH=../docker/superset/config
-    export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/configs/superset/assets/
+    export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/distro/configs/superset/assets/
     export JAVA_OPTS='-Xms2048m -Xmx8192m';
     export SCHEME=https
 
