@@ -1,0 +1,5 @@
+# Override for site-local FHIR datapipes that sync to a remote central HAPI sink
+# (no local hapi-server required).
+services:
+  pipeline-controller:
+    depends_on: {}
