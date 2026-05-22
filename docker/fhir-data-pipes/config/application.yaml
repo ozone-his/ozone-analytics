@@ -43,7 +43,7 @@ fhirdata:
   viewDefinitionsDir: "/views"
   createParquetViews: true
   sinkDbConfigPath: "config/hapi-postgres-config_local_views.json"
-  #sinkFhirServerUrl: "http://sink-server:8080/fhir"
+  sinkFhirServerUrl: "${SINK_FHIR_SERVER_URL}"
   #sinkUserName: "hapi"
   #sinkPassword: "hapi123"
   recursiveDepth: 1
