@@ -1,0 +1,9 @@
+# SHR / consolidated-server settings: allow cross-site sync with unresolved references.
+services:
+  hapi-server:
+    environment:
+      - hapi.fhir.auto_create_placeholder_reference_targets=true
+      - hapi.fhir.allow_placeholder_references=true
+      - hapi.fhir.allow_external_references=true
+      - hapi.fhir.client_id_strategy=ANY
+      - hapi.fhir.update_enabled=true

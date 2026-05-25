@@ -16,7 +16,7 @@ services:
       - FHIR_SERVER_URL_TLS=${FHIR_SERVER_URL_TLS:-https://fhir.openelis.org:8443/fhir}
       - DWH_ROOT_PREFIX=${DWH_ROOT_PREFIX:-/dwh/controller_DWH}
       - FHIR_RESOURCE_LIST=${FHIR_RESOURCE_LIST:-Patient,Observation,Practitioner,DiagnosticReport,ServiceRequest,Specimen,Task,Organization}
-      - NUM_THREADS=${NUM_THREADS:--1}
+      - NUM_THREADS=${NUM_THREADS:-1}
       - AUTO_GENERATE_FLINK_CONFIG=${AUTO_GENERATE_FLINK_CONFIG:-true}
       - WAIT_FOR_FHIR=${WAIT_FOR_FHIR:-true}
       - WAIT_FOR_FHIR_TIMEOUT=${WAIT_FOR_FHIR_TIMEOUT:-300}

@@ -31,7 +31,7 @@ fhirdata:
   purgeSchedule: "${FHIR_DATA_PIPES_PURGE_SCHEDULE}"
   numOfDwhSnapshotsToRetain: ${FHIR_DATA_PIPES_NUM_OF_DWH_SNAPSHOTS_TO_RETAIN}
   resourceList: "${FHIR_RESOURCE_LIST}"
-  numThreads: -1
+  numThreads: ${NUM_THREADS}
   createHiveResourceTables: false
   autoGenerateFlinkConfiguration: false
   thriftserverHiveConfig: "config/thriftserver-hive-config_local.json"
