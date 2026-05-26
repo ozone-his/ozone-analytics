@@ -6,4 +6,6 @@ services:
       - hapi.fhir.allow_placeholder_references=true
       - hapi.fhir.allow_external_references=true
       - hapi.fhir.client_id_strategy=ANY
+      # With ANY, server row IDs must be UUIDs so they never collide with client-assigned logical IDs.
+      - hapi.fhir.server_id_strategy=UUID
       - hapi.fhir.update_enabled=true
