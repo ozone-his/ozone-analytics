@@ -116,7 +116,16 @@ services:
       - FLINK_JOBMANAGER_HOST=jobmanager
       - CONNECT_OPENMRS=${CONNECT_OPENMRS:-1}
       - CONNECT_ODOO=${CONNECT_ODOO:-1}
-  jobmanager:
+  # Flink cluster for the streaming pipeline, in application mode.
+  #
+  # The jobs used to boot an embedded MiniCluster inside their own JVM, tuned through the
+  # JAVA_OPTS / *_MEMORY / TASK_MANAGER_SLOTS environment variables that used to be listed here.
+  # They now run on this cluster, which owns that configuration in ./flink/config/config.yaml, so
+  # those variables are gone: they would be silently ignored.
+  #
+  # The image decides which pipeline it runs, so the JobManager runs its baked-in command and the
+  # TaskManager runs the same image with the command overridden.
+  jobmanager: &flink
     networks:
       ozone-analytics:
     restart: unless-stopped
@@ -135,7 +144,7 @@ services:
          condition: service_completed_successfully
     labels:
       - kompose.service.group=flink-manager
-    environment:
+    environment: &flink-env
       - ANALYTICS_SOURCE_TABLES_PATH=/analytics/source-tables
       - ANALYTICS_QUERIES_PATH=/analytics/queries
       - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
@@ -154,26 +163,33 @@ services:
       - ODOO_DB_PASSWORD=${ODOO_DB_PASSWORD:-password}
       - ODOO_DB_HOST=${ODOO_DB_HOST:-postgresql}
       - ODOO_DB_PORT=${ODOO_DB_PORT:-5432}
-      - ZOOKEEPER_URL=${ZOOKEEPER_URL}
-      - ANALYTICS_CONFIG_FILE_PATH=/analytics/config.yaml
-      - JAVA_OPTS=${JAVA_OPTS}
-      - NETWORK_MEMORY_MIN=${NETWORK_MEMORY_MIN:-1g}
-      - NETWORK_MEMORY_MAX=${NETWORK_MEMORY_MAX:-1g}
-      - TOTAL_PROCESS_MEMORY=${TOTAL_PROCESS_MEMORY:-8g}
-      - MANAGED_MEMORY_FRACTION=${MANAGED_MEMORY_FRACTION:-0.7}
-      - TASK_MANAGER_SLOTS=${TASK_MANAGER_SLOTS:-20}
-      - TASK_PARALLELISM=${TASK_PARALLELISM:-1}
-      - MANAGED_MEMORY_SIZE=${MANAGED_MEMORY_SIZE:-1g}
+      - ANALYTICS_CONFIG_FILE=/analytics/config.yaml
+      # Credentials for the S3 (MinIO) checkpoint and savepoint store, read by the standard AWS
+      # credential chain. The bucket and endpoint themselves are set in flink/config/config.yaml.
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
-      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL}
-      - FLINK_STATE_BUCKET=${FLINK_STATE_BUCKET}
-    volumes:
+    volumes: &flink-volumes
       - flink-shared-data:/tmp
       - ./data:/data
+      - ./flink/config/config.yaml:/opt/flink/conf/config.yaml
       - ${ANALYTICS_SOURCE_TABLES_PATH}:/analytics/source-tables
       - ${ANALYTICS_QUERIES_PATH}:/analytics/queries
-      - ${ANALYTICS_CONFIG_FILE_PATH}:/analytics/config.yaml
+      - ${ANALYTICS_CONFIG_FILE}:/analytics/config.yaml
+
+  # Runs the actual work. Without this the JobManager accepts the job and then waits forever for
+  # slots that never arrive, because the embedded MiniCluster that used to supply them is gone.
+  taskmanager:
+    <<: *flink
+    command: taskmanager
+    ports: []
+    environment: *flink-env
+    volumes: *flink-volumes
+    labels:
+      - kompose.service.group=flink-manager
+    depends_on:
+      - jobmanager
+    deploy:
+      replicas: ${TASK_MANAGER_REPLICAS:-1}
 volumes:
    flink-shared-data: ~
    zookeeper-data: ~

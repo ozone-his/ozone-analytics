@@ -1,31 +1,46 @@
-version: '3.8'
+# Parquet/CSV export pipeline.
+#
+# Runs in Flink application mode: the image bakes in the pipeline, the JobManager runs it, and the
+# TaskManager runs the same image with the command overridden. Runtime tuning (memory,
+# parallelism, checkpointing, S3) belongs to ./flink/config/config.yaml -- which is why the
+# JAVA_OPTS / *_MEMORY variables that used to be set here are gone. They configured the embedded
+# MiniCluster that no longer exists, and would now be silently ignored.
 services:
-  parquet-export:
+  parquet-export: &export
     networks:
       ozone-analytics:
     image: mekomsolutions/ozone-flink-parquet-export
-    environment:
+    environment: &export-env
       - ANALYTICS_DB_USER=${ANALYTICS_DB_USER}
       - ANALYTICS_DB_PASSWORD=${ANALYTICS_DB_PASSWORD}
       - ANALYTICS_DB_HOST=${ANALYTICS_DB_HOST}
       - ANALYTICS_DB_PORT=${ANALYTICS_DB_PORT}
       - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
       - EXPORT_OUTPUT_TAG=${EXPORT_OUTPUT_TAG}
-      - ANALYTICS_CONFIG_FILE_PATH=/analytics/config.yaml
-      - JAVA_OPTS=${JAVA_OPTS}
-      - NETWORK_MEMORY_MIN=${NETWORK_MEMORY_MIN:-1g}
-      - NETWORK_MEMORY_MAX=${NETWORK_MEMORY_MAX:-1g}
-      - TOTAL_PROCESS_MEMORY=${TOTAL_PROCESS_MEMORY:-8g}
-      - MANAGED_MEMORY_FRACTION=${MANAGED_MEMORY_FRACTION:-0.7}
+      - ANALYTICS_CONFIG_FILE=/analytics/config.yaml
+      # Credentials for the S3 (MinIO) state store; endpoint and bucket live in config.yaml.
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
     ports:
       - "8084:8081"
-    volumes:
-      - ./flink/config/flink-conf.yaml:/etc/flink/flink-conf.yaml
+    volumes: &export-volumes
+      - ./flink/config/config.yaml:/opt/flink/conf/config.yaml
       - ${EXPORT_DESTINATION_TABLES_PATH}:/export/destination-tables
       - ${EXPORT_SOURCE_QUERIES_PATH}:/export/queries
       - ${EXPORT_OUTPUT_PATH}:/parquet
-      - ${ANALYTICS_CONFIG_FILE_PATH}:/analytics/config.yaml
+      - ${ANALYTICS_CONFIG_FILE}:/analytics/config.yaml
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  # Runs the actual work. Without it the JobManager accepts the job and then waits forever for
+  # slots that never arrive.
+  parquet-export-taskmanager:
+    <<: *export
+    command: taskmanager
+    ports: []
+    environment: *export-env
+    volumes: *export-volumes
+    depends_on:
+      - parquet-export
 networks:
   ozone-analytics:
