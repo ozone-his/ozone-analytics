@@ -1,0 +1,95 @@
+# Flink cluster configuration (Flink 2.x `config.yaml` format, which replaced `flink-conf.yaml`).
+#
+# This owns HOW the pipelines run. What they compute is defined separately in the analytics
+# pipeline config, mounted from the distro at ANALYTICS_CONFIG_FILE.
+#
+# These settings previously lived in Java, configuring an embedded MiniCluster via env vars
+# (JAVA_OPTS, TOTAL_PROCESS_MEMORY, TASK_MANAGER_SLOTS, ...). The jobs now run on a real cluster,
+# which owns its own configuration, so those env vars are gone and this file replaces them.
+#
+# This file is mounted over the image's own conf/config.yaml, which REPLACES the shipped defaults
+# rather than merging with them. That is why env.java.opts.all has to be reproduced here.
+
+# JVM flags Flink requires on Java 17+ to reach JDK internals the module system closed off.
+# Without them every job dies at startup with InaccessibleObjectException. Copied verbatim from
+# flink:2.0.2-java17 and still valid on 2.2.1, whose own list is a subset of it (2.2.1 dropped
+# --add-exports=java.base/sun.net.util). Per the Flink docs this list "must not be shortened, but
+# only extended", so a superset is safe; re-check it against the image on a Flink upgrade.
+env:
+  java:
+    opts:
+      all: --add-exports=java.base/sun.net.util=ALL-UNNAMED --add-exports=java.rmi/sun.rmi.registry=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-exports=java.security.jgss/sun.security.krb5=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED
+
+jobmanager:
+  rpc:
+    address: jobmanager
+    port: 6123
+  memory:
+    process:
+      size: 2g
+
+taskmanager:
+  numberOfTaskSlots: 20
+  memory:
+    process:
+      size: 8g
+    managed:
+      fraction: 0.8
+
+parallelism:
+  default: 2
+
+# Exactly-once checkpointing to S3 (MinIO). Unaligned checkpoints keep barriers moving when a sink
+# backpressures, which matters because every flattening sink shares a single job.
+execution:
+  checkpointing:
+    mode: EXACTLY_ONCE
+    interval: 10min
+    timeout: 10min
+    unaligned:
+      enabled: true
+    tolerable-failed-checkpoints: 50
+
+state:
+  backend:
+    type: rocksdb
+    incremental: true
+  checkpoints:
+    dir: s3://flink-state-bucket/checkpoints/
+    num-retained: 2
+  savepoints:
+    dir: s3://flink-state-bucket/savepoints/
+
+restart-strategy:
+  type: exponential-delay
+
+table:
+  exec:
+    # Batch the writes to PostgreSQL rather than issuing one statement per row.
+    mini-batch:
+      enabled: true
+      allow-latency: 5s
+      size: 5000
+    # Without a TTL a streaming join retains state forever; this is the usual cause of unbounded
+    # state growth in a long-running Flink SQL job.
+    state:
+      ttl: 1h
+
+# Presto S3 access to MinIO. Credentials come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in the
+# environment via the standard AWS credential chain, so none is written here. Path-style access is
+# required because MinIO does not serve virtual-host style buckets.
+s3:
+  path:
+    style:
+      access: true
+
+metrics:
+  reporters: prom
+  reporter:
+    prom:
+      factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+      port: 9250
+
+rest:
+  address: 0.0.0.0
+  bind-address: 0.0.0.0

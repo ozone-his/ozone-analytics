@@ -23,7 +23,7 @@ function setupDirs () {
 
 function exportEnvs () {
     echo "$INFO Exporting envs..."
-    export ANALYTICS_CONFIG_FILE_PATH=$ANALYTICS_CONFIG_PATH/config.yaml
+    export ANALYTICS_CONFIG_FILE=$ANALYTICS_CONFIG_PATH/config.yaml
     export ANALYTICS_DB_PORT=5432
     export CONNECT_MYSQL_PORT=3306
     export CONNECT_MYSQL_USER=root
@@ -44,7 +44,7 @@ function exportEnvs () {
     export EXPORT_OUTPUT_TAG=h1
     export MYSQL_USER=openmrs
     export MYSQL_PASSWORD=password
-    export ANALYTICS_CONFIG_FILE_PATH=$ANALYTICS_CONFIG_PATH/config.yaml
+    export ANALYTICS_CONFIG_FILE=$ANALYTICS_CONFIG_PATH/config.yaml
     export ANALYTICS_SOURCE_TABLES_PATH=$ANALYTICS_CONFIG_PATH/dsl/flattening/tables
     export ANALYTICS_QUERIES_PATH=$ANALYTICS_CONFIG_PATH/dsl/flattening/queries
     export ANALYTICS_DESTINATION_TABLES_MIGRATIONS_PATH=$ANALYTICS_CONFIG_PATH/liquibase/analytics
@@ -54,7 +54,7 @@ function exportEnvs () {
     export JAVA_OPTS='-Xms2048m -Xmx8192m';
     export SCHEME=https
 
-    echo "→ ANALYTICS_CONFIG_FILE_PATH=$ANALYTICS_CONFIG_FILE_PATH"
+    echo "→ ANALYTICS_CONFIG_FILE=$ANALYTICS_CONFIG_FILE"
     echo "→ ANALYTICS_DB_PORT=$ANALYTICS_DB_PORT"
     echo "→ ANALYTICS_SOURCE_TABLES_PATH=$ANALYTICS_SOURCE_TABLES_PATH"
     echo "→ ANALYTICS_QUERIES_PATH=$ANALYTICS_QUERIES_PATH"
