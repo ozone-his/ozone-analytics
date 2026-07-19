@@ -1,0 +1,22 @@
+{
+  "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+  "tasks.max": "1",
+  "database.hostname": "${file:/kafka/config/connect-distributed.properties:mysql.hostname}",
+  "database.port": "${file:/kafka/config/connect-distributed.properties:mysql.port}",
+  "database.user": "${file:/kafka/config/connect-distributed.properties:mysql.username}",
+  "database.password": "${file:/kafka/config/connect-distributed.properties:mysql.password}",
+  "database.server.id": "${file:/kafka/config/connect-distributed.properties:mysql.server.id}",
+  "database.server.name": "${file:/kafka/config/connect-distributed.properties:mysql.server.name}",
+  "database.include.list": "${file:/kafka/config/connect-distributed.properties:mysql.include.list}",
+  "table.exclude.list": "${file:/kafka/config/connect-distributed.properties:table.exclude.list}",
+  "database.history.kafka.bootstrap.servers": "${file:/kafka/config/connect-distributed.properties:mysql.kafka.bootstrap.servers}",
+  "database.history.kafka.topic": "${file:/kafka/config/connect-distributed.properties:mysql.histroy.topic}",
+  "converters": "timestampConverter,boolean",
+  "boolean.type": "io.debezium.connector.mysql.converters.TinyIntOneToBooleanConverter",
+  "timestampConverter.type": "oryanmoshe.kafka.connect.util.TimestampConverter",
+  "timestampConverter.format.time": "HH:mm:ss",
+  "timestampConverter.format.date": "YYYY-MM-dd",
+  "timestampConverter.format.datetime": "yyyy-MM-dd HH:mm:ss",
+  "timestampConverter.debug": "false",
+  "snapshot.mode": "when_needed"
+}
