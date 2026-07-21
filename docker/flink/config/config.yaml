@@ -25,11 +25,23 @@ jobmanager:
     address: jobmanager
     port: 6123
   memory:
+    # The JobManager runs the application main(), which plans every job and loads its generated
+    # operator classes into Metaspace. Each flattening statement is now its own job, so ~12 are
+    # planned in this one JVM and the 256m default Metaspace overflows: the JobManager OOMs, and in
+    # application mode that resubmits every job, which reloads everything -- a crash loop. Sized to
+    # hold all of them at once with headroom.
     process:
-      size: 2g
+      size: 3g
+    jvm-metaspace:
+      size: 1g
 
+# Each flattening statement runs as its own job, and a streaming job holds its slots for as long as
+# it runs. Total slots (numberOfTaskSlots x TASK_MANAGER_REPLICAS) must therefore be at least
+# <number of flattening statements> x parallelism.default -- currently 12 x 2 = 24 -- or the jobs
+# that miss out sit pending forever, waiting for slots that never free. 32 leaves headroom.
+# Scale memory alongside slots: managed memory is divided across them.
 taskmanager:
-  numberOfTaskSlots: 20
+  numberOfTaskSlots: 32
   memory:
     process:
       size: 8g
@@ -40,7 +52,7 @@ parallelism:
   default: 2
 
 # Exactly-once checkpointing to S3 (MinIO). Unaligned checkpoints keep barriers moving when a sink
-# backpressures, which matters because every flattening sink shares a single job.
+# backpressures, so one slow sink does not stall its job's checkpoints.
 execution:
   checkpointing:
     mode: EXACTLY_ONCE
@@ -65,6 +77,18 @@ restart-strategy:
 
 table:
   exec:
+    sink:
+      # Flink 2.3 added this check, defaulting to true: it rejects a query whose upsert key differs
+      # from the sink's primary key unless the INSERT carries an explicit ON CONFLICT clause. The
+      # flattening queries trip it (Flink infers no upsert key from them), so without this 2.3
+      # refuses to submit them at all.
+      #
+      # TEMPORARY. Disabling it restores the pre-2.3 behaviour, but the check is pointing at
+      # something real: with no inferable upsert key, two records mapping to the same primary key
+      # can be applied in a non-deterministic order. That was equally true before 2.3 -- 2.3 merely
+      # started saying so. The proper fix is an explicit ON CONFLICT policy per INSERT, which is a
+      # correctness decision about the queries, not something to paper over here.
+      require-on-conflict: false
     # Batch the writes to PostgreSQL rather than issuing one statement per row.
     mini-batch:
       enabled: true

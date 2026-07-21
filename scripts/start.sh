@@ -30,7 +30,7 @@ echo "$CONNECT_ODOO_DB_NAME"
 
 # Run Ozone Analytics Services
 #dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-superset.yaml up -d"
-dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-migration.yaml -f ../docker/docker-compose-streaming-common.yaml -f ../docker/docker-compose-kowl.yaml  -f ../docker/docker-compose-superset.yaml up -d"
+dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-migration.yaml -f ../docker/docker-compose-streaming-common.yaml -f ../docker/docker-compose-redpanda-console.yaml  -f ../docker/docker-compose-superset.yaml up -d"
 echo "$INFO Running Ozone Analytics Services..."
 echo "$dockerComposeCommand"
 $dockerComposeCommand

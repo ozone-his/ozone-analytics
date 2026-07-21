@@ -1,0 +1,31 @@
+services:
+  # Kafka/Connect web UI. Replaces Kowl (rsmnarts/kowl), which is unmaintained and was pinned to a
+  # floating tag. Redpanda Console is Kowl's maintained successor -- same project, renamed after the
+  # acquisition -- so this is a rename plus a version pin rather than a new tool.
+  #
+  # Note the config key: Console v2 renamed Kowl's `connect:` block to `kafkaConnect:`.
+  redpanda-console:
+    image: redpandadata/console:${REDPANDA_CONSOLE_VERSION}
+    networks:
+      - ozone-analytics
+    container_name: "redpanda-console"
+    restart: unless-stopped
+    entrypoint: /bin/sh
+    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+    ports:
+      - "8282:8080"
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        kafka:
+          brokers: ["kafka:9092"]
+        kafkaConnect:
+          enabled: true
+          clusters:
+            - name: Ozone
+              url: http://connect:8083
+    depends_on:
+      - "kafka"
+      - "connect"
+networks:
+  ozone-analytics:

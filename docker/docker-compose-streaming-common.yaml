@@ -1,52 +1,44 @@
-version: '3.8'
 services:
-  zookeeper:
-    networks:
-      ozone-analytics:
-    restart: unless-stopped
-    image: debezium/zookeeper:${DEBEZIUM_VERSION}
-    platform: linux/amd64
-    ports:
-     - 2181:2181
-     - 2888:2888
-     - 3888:3888
-    volumes:
-      - zookeeper-data:/zookeeper/data
-      - zookeeper-txns:/zookeeper/txns
-    labels: 
-      kompose.service.type: clusterip
+  # Apache Kafka in KRaft mode: the broker runs its own controller quorum, so there is no
+  # ZooKeeper. This replaces the debezium/kafka image, which pinned Kafka to whatever the Debezium
+  # release shipped and is no longer published for current Debezium versions.
   kafka:
     restart: unless-stopped
-    image: debezium/kafka:${DEBEZIUM_VERSION}
-    platform: linux/amd64
+    image: apache/kafka:${KAFKA_VERSION}
     networks:
       ozone-analytics:
     ports:
       - 9092:9092
       - 29092:29092
     environment:
-      - CLUSTER_ID=5Yr1SIgYQz-b-dgRabWx4g
-      - BROKER_ID=1
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
-      - KAFKA_LISTENERS=PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093,PLAINTEXT_HOST://0.0.0.0:29092
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://kafka:29092
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      CLUSTER_ID: 5Yr1SIgYQz-b-dgRabWx4g
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     volumes:
-      - kafka-data:/kafka/data
+      - kafka-data:/var/lib/kafka/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "/bin/bash",
-          "-c",
-          "./bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --list"
-        ]
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 20s
+  # Pre-creates every source-table topic. Debezium only creates a topic once a table has rows, so
+  # without this the streaming jobs fail on topics that do not exist yet.
   kafka-setup:
     networks:
       ozone-analytics:
     restart: on-failure
-    image: debezium/kafka:${DEBEZIUM_VERSION}
-    platform: linux/amd64
+    image: apache/kafka:${KAFKA_VERSION}
     command:
       - /bin/bash
       - -c
@@ -55,24 +47,26 @@ services:
         for topic in $${topics[@]}
           do
             echo "Creating topic $$topic..."
-            ./bin/kafka-topics.sh --create --topic $$topic --partitions 1 --replication-factor 1 --if-not-exists --bootstrap-server kafka:9092
-            ./bin/kafka-configs.sh --bootstrap-server=kafka:9092  --entity-type topics --entity-name $$topic --alter --add-config retention.ms=31556736000
+            /opt/kafka/bin/kafka-topics.sh --create --topic $$topic --partitions 1 --replication-factor 1 --if-not-exists --bootstrap-server kafka:9092
+            /opt/kafka/bin/kafka-configs.sh --bootstrap-server=kafka:9092 --entity-type topics --entity-name $$topic --alter --add-config retention.ms=31556736000
         done
     environment:
      - TOPICS=${CREATE_TOPICS}
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
+  # Debezium 3.x, from quay.io (Docker Hub no longer receives current Debezium releases).
+  #
+  # The TimestampConverter SMT jar that used to be mounted here is gone: it existed because
+  # Debezium 1.9 emitted temporal columns as epoch numbers, which the flattening SQL could not
+  # read. Debezium 3.x emits them as formatted strings natively, so the workaround is obsolete.
   connect:
     restart: unless-stopped
-    image: debezium/connect:${DEBEZIUM_VERSION}
-    platform: linux/amd64
+    image: quay.io/debezium/connect:${DEBEZIUM_VERSION}
     networks:
       ozone-analytics:
     ports:
       - 8383:8083
-    volumes:
-      - ./debezium-connect/jars/TimestampConverter-1.2.4-SNAPSHOT.jar:/kafka/connect/debezium-connector-mysql/TimestampConverter-1.2.4-SNAPSHOT.jar
-      - ./debezium-connect/jars/TimestampConverter-1.2.4-SNAPSHOT.jar:/kafka/connect/debezium-connector-postgres/TimestampConverter-1.2.4-SNAPSHOT.jar
     environment:
       - BOOTSTRAP_SERVERS=kafka:9092
       - GROUP_ID=1
@@ -97,6 +91,8 @@ services:
       - CONNECT_ODOO_DB_USERNAME=${CONNECT_ODOO_DB_USERNAME:-${POSTGRES_USER}}
       - CONNECT_ODOO_DB_PASSWORD=${CONNECT_ODOO_DB_PASSWORD:-${POSTGRES_PASSWORD}}
       - CONNECT_ODOO_DB_PORT=${CONNECT_ODOO_DB_PORT:-5432}
+      # Debezium's PostgreSQL connector requires the database name explicitly.
+      - CONNECT_ODOO_DB_NAME=${CONNECT_ODOO_DB_NAME:-odoo}
       - CONNECT_ODOO_DB_SERVER_NAME=erp
       - CONNECT_ODOO_DB_INCLUDE_LIST=odoo
 
@@ -146,10 +142,8 @@ services:
     depends_on:
        analytics-migration:
           condition: service_completed_successfully
-       zookeeper:
-         condition: service_started
        kafka:
-         condition: service_started
+         condition: service_healthy
        kafka-setup:
          condition: service_completed_successfully
     labels:
@@ -202,8 +196,6 @@ services:
       replicas: ${TASK_MANAGER_REPLICAS:-1}
 volumes:
    flink-shared-data: ~
-   zookeeper-data: ~
    kafka-data: ~
-   zookeeper-txns: ~
 networks:
   ozone-analytics:
