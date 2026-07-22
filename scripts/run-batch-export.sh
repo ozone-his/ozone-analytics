@@ -32,25 +32,29 @@ fi
 echo "$INFO CD to Docker folder..."
 cd $MYDIR/../docker
 
+# The offline batch source is a local OpenMRS (mysql) that the streaming stack does not run, so it
+# lives in its own compose file; the analytics sink (postgresql) stays in docker-compose-db.yaml.
+DB_COMPOSE="docker compose -f docker-compose-db.yaml -f docker-compose-batch-source-db.yaml"
+
 echo "$INFO Cleaning MySQL and PostgreSQL..."
-docker compose -f docker-compose-db.yaml down -v
+$DB_COMPOSE down -v
 
 echo "$INFO Starting MySQL and PostgreSQL..."
-docker compose -f docker-compose-db.yaml up -d --remove-orphans
+$DB_COMPOSE up -d --remove-orphans
 
 echo "$INFO Pausing for 10 seconds to allow  MySQL and PostgreSQL to start..."
 sleep 10
 
 echo "$INFO Restoring OpenMRS dump..."
-docker compose -f docker-compose-db.yaml cp $OPENMRS_DUMP_PATH mysql:/tmp/dump.sql
-docker compose -f docker-compose-db.yaml exec mysql sh -c 'mysql -h localhost -u root -p$MYSQL_ROOT_PASSWORD  --database=openmrs < /tmp/dump.sql'
+$DB_COMPOSE cp $OPENMRS_DUMP_PATH mysql:/tmp/dump.sql
+$DB_COMPOSE exec mysql sh -c 'mysql -h localhost -u root -p$MYSQL_ROOT_PASSWORD  --database=openmrs < /tmp/dump.sql'
 
 echo "$INFO Applying Appointment Boolean type Workaround..."
-docker compose -f docker-compose-db.yaml exec mysql sh -c 'mysql -h localhost -u root -p$MYSQL_ROOT_PASSWORD  --database=openmrs -e "ALTER TABLE appointment_service MODIFY COLUMN voided TINYINT(1);ALTER TABLE appointment_service_type MODIFY COLUMN voided TINYINT(1);ALTER TABLE patient_appointment_provider MODIFY COLUMN voided TINYINT(1);ALTER TABLE patient_appointment MODIFY COLUMN voided TINYINT(1);"'
+$DB_COMPOSE exec mysql sh -c 'mysql -h localhost -u root -p$MYSQL_ROOT_PASSWORD  --database=openmrs -e "ALTER TABLE appointment_service MODIFY COLUMN voided TINYINT(1);ALTER TABLE appointment_service_type MODIFY COLUMN voided TINYINT(1);ALTER TABLE patient_appointment_provider MODIFY COLUMN voided TINYINT(1);ALTER TABLE patient_appointment MODIFY COLUMN voided TINYINT(1);"'
 
 echo "$INFO Restoring Odoo dump..."
-docker compose -f docker-compose-db.yaml cp $ODOO_DUMP_PATH postgresql:/tmp/dump.sql
-docker compose -f docker-compose-db.yaml exec postgresql sh -c 'PGPASSWORD=$ODOO_DB_PASSWORD psql -U $ODOO_DB_USER -d odoo < /tmp/dump.sql'
+$DB_COMPOSE cp $ODOO_DUMP_PATH postgresql:/tmp/dump.sql
+$DB_COMPOSE exec postgresql sh -c 'PGPASSWORD=$ODOO_DB_PASSWORD psql -U $ODOO_DB_USER -d odoo < /tmp/dump.sql'
 
 echo "$INFO Delete conditions.sql and encounter_diagnoses.sql to workaround an incompatibility with the OpenMRS version Bahmni is using..."
 rm -f $ANALYTICS_QUERIES_PATH/conditions.sql

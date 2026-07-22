@@ -116,8 +116,11 @@ docker compose -f docker-compose-db.yaml -f docker-compose-migration.yaml -f doc
 
 ### Start Ozone Analytics Batch mode
 
+Batch mode reads a local OpenMRS source, which lives in its own compose file (the streaming stack
+does not run one):
+
 ```bash
-docker compose -f docker-compose-db.yaml -f docker-compose-migration.yaml -f docker-compose-batch-etl.yaml up
+docker compose -f docker-compose-db.yaml -f docker-compose-batch-source-db.yaml -f docker-compose-migration.yaml -f docker-compose-batch-etl.yaml up
 ```
 
 ### Drill-backed analytics server
