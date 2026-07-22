@@ -1,0 +1,30 @@
+# Local OpenMRS source database for the offline batch/export workflow only.
+#
+# The streaming stack does not use this: it reads OpenMRS change events from the running Ozone
+# distro on the host. run-batch-export.sh instead restores an OpenMRS dump into this container and
+# flattens it in one pass, so it needs a local MySQL/MariaDB. Kept out of docker-compose-db.yaml
+# (the streaming sink) and pulled in only by that script.
+#
+# The service is named `mysql` because the connector config and credentials refer to it by that
+# name; the image is MariaDB.
+services:
+  mysql:
+    networks:
+      ozone-analytics:
+    restart: unless-stopped
+    image: mariadb:${MARIADB_VERSION}
+    command: "mysqld --character-set-server=utf8 --collation-server=utf8_general_ci --log-bin --binlog-format=ROW  --server-id=0 --max_connections=1024"
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+    volumes:
+      - ${MYSQL_DATADIR:-mysql-data}:/var/lib/mysql:rw
+      - ./sqls/mysql/:/docker-entrypoint-initdb.d/
+volumes:
+   mysql-data:
+networks:
+  ozone-analytics:

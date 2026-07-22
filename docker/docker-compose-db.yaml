@@ -1,31 +1,7 @@
+# Only the analytics sink runs here. The CDC source databases (OpenMRS, Odoo) belong to the running
+# Ozone distro and are reached on the host, so this repo does not run its own MySQL/MariaDB.
 services:
-  # NOTE: the image is MariaDB, not MySQL; the service keeps the `mysql` name because hostnames and
-  # credentials across the distro refer to it. Debezium 3.x reads it with its MariaDbConnector.
-  #
-  # Upgrading this from 10.3 rewrites the data directory -- see UPGRADING.md. Do not bump the
-  # version without running that migration first: the server will refuse to start on a data
-  # directory from a different major version.
-  mysql:
-    networks:
-      ozone-analytics:
-    restart: unless-stopped
-    image: mariadb:${MARIADB_VERSION}
-    command: "mysqld --character-set-server=utf8 --collation-server=utf8_general_ci --log-bin --binlog-format=ROW  --server-id=0 --max_connections=1024"
-    environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    healthcheck:
-      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
-    volumes:
-      - ${MYSQL_DATADIR:-mysql-data}:/var/lib/mysql:rw
-      - ./sqls/mysql/:/docker-entrypoint-initdb.d/
-
   # Holds the analytics, superset, hapi and odoo databases.
-  #
-  # Upgrading this from 13 requires a dump/restore -- see UPGRADING.md. PostgreSQL data directories
-  # are major-version specific, so a newer server will refuse to start on an older one's data.
   postgresql:
     networks:
       ozone-analytics:
@@ -60,7 +36,6 @@ services:
       - "${SQL_SCRIPTS_PATH:-./sqls}/postgresql/superset:/docker-entrypoint-initdb.d/db/superset"
       - "${SQL_SCRIPTS_PATH:-./sqls}/postgresql/hapi:/docker-entrypoint-initdb.d/db/hapi"
 volumes:
-   mysql-data:
    postgresql-data: ~
 networks:
   ozone-analytics:

@@ -1,7 +1,4 @@
 services:
-  mysql:
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"  
   postgresql:
     ports:
       - "${POSTGRESQL_PORT:-5432}:5432"
