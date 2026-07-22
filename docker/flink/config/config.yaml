@@ -103,6 +103,7 @@ table:
 # environment via the standard AWS credential chain, so none is written here. Path-style access is
 # required because MinIO does not serve virtual-host style buckets.
 s3:
+  endpoint: http://minio:9099
   path:
     style:
       access: true
