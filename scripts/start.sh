@@ -43,10 +43,17 @@ else
     setNginxHostnames
 fi
 
+# MinIO and Superset attach to the external `web` network (Traefik ingress). Create it if it does
+# not exist so a standalone analytics run does not fail on a missing network. MINIO_DOMAIN just
+# needs a value for the Traefik label to parse; the Nginx path does not route through it.
+docker network inspect web >/dev/null 2>&1 || { echo "$INFO Creating the 'web' docker network..."; docker network create web >/dev/null; }
+export MINIO_DOMAIN="${MINIO_DOMAIN:-minio.localhost}"
+
 # The streaming stack, brought together from the distro and this repo's compose files.
 compose_files=(
     docker-compose-db.yaml               # analytics PostgreSQL sink (+ Superset/HAPI databases)
     docker-compose-migration.yaml        # creates the flattened destination tables
+    docker-compose-minio.yaml            # S3 store for Flink checkpoints/savepoints
     docker-compose-streaming-common.yaml # Kafka (KRaft), Debezium Connect, Flink jobmanager/taskmanager
     docker-compose-redpanda-console.yaml # Kafka + Connect web UI
     docker-compose-superset.yaml         # dashboards
@@ -66,5 +73,8 @@ echo "$INFO Waiting for services to start..."
 sleep 10
 
 echo "$INFO Ozone Analytics is running. Access URLs:"
-echo "$INFO   Superset: $SCHEME://$SUPERSET_HOSTNAME ($([ "${ENABLE_OAUTH:-false}" != "true" ] && echo "admin" || echo "jdoe") / password)"
-echo "$INFO   Keycloak: $SCHEME://$KEYCLOAK_HOSTNAME (admin / password)"
+echo "$INFO   Superset:         $SCHEME://$SUPERSET_HOSTNAME ($([ "${ENABLE_OAUTH:-false}" != "true" ] && echo "admin" || echo "jdoe") / password)"
+echo "$INFO   Keycloak:         $SCHEME://$KEYCLOAK_HOSTNAME (admin / password)"
+echo "$INFO   Flink UI:         http://localhost:8085  (one streaming job per flattened table)"
+echo "$INFO   Kafka/Connect UI: http://localhost:8282  (Redpanda Console)"
+echo "$INFO   MinIO console:    http://localhost:8091  ($MINIO_ROOT_USER / $MINIO_ROOT_PASSWORD)"
