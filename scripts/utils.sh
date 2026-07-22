@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-export TEXT_BLUE=`tput setaf 4`
-export TEXT_RED=`tput setaf 1`
-export BOLD=`tput bold`
-export RESET_FORMATTING=`tput sgr0`
+# tput fails when there is no terminal (CI, piped output); fall back to empty so `set -e` is happy.
+export TEXT_BLUE=$(tput setaf 4 2>/dev/null || true)
+export TEXT_RED=$(tput setaf 1 2>/dev/null || true)
+export BOLD=$(tput bold 2>/dev/null || true)
+export RESET_FORMATTING=$(tput sgr0 2>/dev/null || true)
 INFO="$TEXT_BLUE$BOLD[INFO]$RESET_FORMATTING"
 ERROR="$TEXT_RED$BOLD[ERROR]$RESET_FORMATTING"
 
@@ -21,29 +22,13 @@ function setupDirs () {
     echo "→ ANALYTICS_CONFIG_PATH=$ANALYTICS_CONFIG_PATH"
 }
 
+# Exports the values the compose files consume that are not already static defaults in docker/.env:
+# the paths into the fetched distro (which depend on DISTRO_PATH, so they cannot live in .env) and
+# the connection details for reaching the running distro's source databases.
 function exportEnvs () {
     echo "$INFO Exporting envs..."
-    export ANALYTICS_CONFIG_FILE=$ANALYTICS_CONFIG_PATH/config.yaml
-    export ANALYTICS_DB_PORT=5432
-    export CONNECT_MYSQL_PORT=3306
-    export CONNECT_MYSQL_USER=root
-    export CONNECT_MYSQL_PASSWORD=3cY8Kve4lGey
-    export CONNECT_ODOO_DB_PORT=5432
-    export CONNECT_ODOO_DB_NAME=odoo
-    export CONNECT_ODOO_DB_USER=odoo
-    export CONNECT_ODOO_DB_PASSWORD=password
-    export ODOO_DB_PORT=5432
-    export ODOO_DB_NAME=odoo
-    export ODOO_DB_USER=odoo
-    export ODOO_DB_PASSWORD=password
-    export OPENMRS_DB_PORT=3306
-    export OPENMRS_DB_NAME=openmrs
-    export EXPORT_DESTINATION_TABLES_PATH=$ANALYTICS_CONFIG_PATH/dsl/export/tables/
-    export EXPORT_SOURCE_QUERIES_PATH=$ANALYTICS_CONFIG_PATH/dsl/export/queries
-    export EXPORT_OUTPUT_PATH=$(pwd)/data/parquet/
-    export EXPORT_OUTPUT_TAG=h1
-    export MYSQL_USER=openmrs
-    export MYSQL_PASSWORD=password
+
+    # Paths into the fetched Ozone distro. setupDirs must have run first.
     export ANALYTICS_CONFIG_FILE=$ANALYTICS_CONFIG_PATH/config.yaml
     export ANALYTICS_SOURCE_TABLES_PATH=$ANALYTICS_CONFIG_PATH/dsl/flattening/tables
     export ANALYTICS_QUERIES_PATH=$ANALYTICS_CONFIG_PATH/dsl/flattening/queries
@@ -51,47 +36,43 @@ function exportEnvs () {
     export SQL_SCRIPTS_PATH=$DISTRO_PATH/distro/data
     export SUPERSET_CONFIG_PATH=../docker/superset/config
     export SUPERSET_DASHBOARDS_PATH=$DISTRO_PATH/distro/configs/superset/assets/
-    export JAVA_OPTS='-Xms2048m -Xmx8192m';
+
+    # Batch/Parquet export (used by run-batch-export.sh).
+    export EXPORT_DESTINATION_TABLES_PATH=$ANALYTICS_CONFIG_PATH/dsl/export/tables/
+    export EXPORT_SOURCE_QUERIES_PATH=$ANALYTICS_CONFIG_PATH/dsl/export/queries
+    export EXPORT_OUTPUT_PATH=$(pwd)/data/parquet/
+    export EXPORT_OUTPUT_TAG=h1
+
+    # Source databases in the running distro (host set separately by setDockerHost). The analytics
+    # sink and Kafka credentials are static and live in docker/.env.
+    export OPENMRS_DB_PORT=3306
+    export OPENMRS_DB_NAME=openmrs
+    export MYSQL_USER=openmrs
+    export MYSQL_PASSWORD=password
+    export CONNECT_MYSQL_PORT=3306
+    export CONNECT_MYSQL_USER=root
+    export CONNECT_MYSQL_PASSWORD=3cY8Kve4lGey
+    export ODOO_DB_PORT=5432
+    export ODOO_DB_NAME=odoo
+    export ODOO_DB_USER=odoo
+    export ODOO_DB_PASSWORD=password
+    export CONNECT_ODOO_DB_PORT=5432
+    export CONNECT_ODOO_DB_NAME=odoo
+    export CONNECT_ODOO_DB_USER=odoo
+    export CONNECT_ODOO_DB_PASSWORD=password
+    export ANALYTICS_DB_PORT=5432
+
+    export JAVA_OPTS='-Xms2048m -Xmx8192m'
     export SCHEME=https
 
-    echo "→ ANALYTICS_CONFIG_FILE=$ANALYTICS_CONFIG_FILE"
-    echo "→ ANALYTICS_DB_PORT=$ANALYTICS_DB_PORT"
-    echo "→ ANALYTICS_SOURCE_TABLES_PATH=$ANALYTICS_SOURCE_TABLES_PATH"
-    echo "→ ANALYTICS_QUERIES_PATH=$ANALYTICS_QUERIES_PATH"
-    echo "→ ANALYTICS_DESTINATION_TABLES_MIGRATIONS_PATH=$ANALYTICS_DESTINATION_TABLES_MIGRATIONS_PATH"
-    echo "→ MYSQL_USER=$MYSQL_USER"
-    echo "→ MYSQL_PASSWORD=$MYSQL_PASSWORD"
-    echo "→ CONNECT_MYSQL_PORT=$CONNECT_MYSQL_PORT"
-    echo "→ CONNECT_MYSQL_USER=$CONNECT_MYSQL_USER"
-    echo "→ CONNECT_MYSQL_PASSWORD=$CONNECT_MYSQL_PASSWORD"
-    echo "→ CONNECT_ODOO_DB_PORT=$CONNECT_ODOO_DB_PORT"
-    echo "→ CONNECT_ODOO_DB_NAME=$CONNECT_ODOO_DB_NAME"
-    echo "→ CONNECT_ODOO_DB_USER=$CONNECT_ODOO_DB_USER"
-    echo "→ CONNECT_ODOO_DB_PASSWORD=$CONNECT_ODOO_DB_PASSWORD"
-    echo "→ ODOO_DB_PORT=$ODOO_DB_PORT"
-    echo "→ ODOO_DB_NAME=$ODOO_DB_NAME"
-    echo "→ ODOO_DB_USER=$ODOO_DB_USER"
-    echo "→ ODOO_DB_PASSWORD=$ODOO_DB_PASSWORD"
-    echo "→ OPENMRS_DB_PORT=$OPENMRS_DB_PORT"
-    echo "→ OPENMRS_DB_NAME=$OPENMRS_DB_NAME"
-    echo "→ EXPORT_DESTINATION_TABLES_PATH=$EXPORT_DESTINATION_TABLES_PATH"
-    echo "→ EXPORT_SOURCE_QUERIES_PATH=$EXPORT_SOURCE_QUERIES_PATH"
-    echo "→ EXPORT_OUTPUT_PATH=$EXPORT_OUTPUT_PATH"
-    echo "→ EXPORT_OUTPUT_TAG=$EXPORT_OUTPUT_TAG"
-    echo "→ SQL_SCRIPTS_PATH=$SQL_SCRIPTS_PATH"
-    echo "→ SUPERSET_CONFIG_PATH=$SUPERSET_CONFIG_PATH"
-    echo "→ SUPERSET_DASHBOARDS_PATH=$SUPERSET_DASHBOARDS_PATH"
-    echo "→ JAVA_OPTS=$JAVA_OPTS"
+    echo "$INFO Distro config: $ANALYTICS_CONFIG_PATH"
+    echo "$INFO Source DBs: OpenMRS ${OPENMRS_DB_HOST:-<host>}:$OPENMRS_DB_PORT, Odoo ${ODOO_DB_HOST:-<host>}:$ODOO_DB_PORT"
 }
 
+# Points the CDC connectors and JDBC sources at the databases of the Ozone distro running on the
+# host. `host.docker.internal` resolves to the host from inside a container on Docker Desktop, and on
+# Linux when the compose files map it via `extra_hosts: host-gateway`.
 function setDockerHost {
-    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        # Linux
-        export DOCKER_GATEWAY_HOST="172.17.0.1" 
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        # Mac OSX
-        export DOCKER_GATEWAY_HOST="host.docker.internal"
-    fi
     export DOCKER_GATEWAY_HOST="host.docker.internal"
     export CONNECT_MYSQL_HOSTNAME=$DOCKER_GATEWAY_HOST
     export CONNECT_ODOO_DB_HOSTNAME=$DOCKER_GATEWAY_HOST
@@ -102,11 +83,9 @@ function setDockerHost {
 function setTraefikIP {
 
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        # Linux
-        # Using the static Docker IP
+        # Linux: use the static Docker bridge IP.
         export IP="172.17.0.1"
         echo "$INFO 'linux-gnu' OS detected, using Docker static IP ($IP) in Traefik hostnames..."
-        export IP="172.17.0.1"
         export IP_WITH_DASHES="${IP//./-}"
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         # Mac OSX

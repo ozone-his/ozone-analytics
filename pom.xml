@@ -53,8 +53,6 @@
                   <directory>${project.basedir}/</directory>
                   <includes>
                   <include>README.md</include>
-                  <!-- Ships with the distro: 3.0.0 needs a sequenced migration, not a redeploy. -->
-                  <include>UPGRADING.md</include>
                   </includes>
                 </resource>
               </resources>
