@@ -1,10 +1,6 @@
 # Ozone Analytics
 This project hosts Ozone Analytics suite.
 
-> **Upgrading from 2.x?** 3.0.0 is not a rolling upgrade: the CDC pipeline is rebuilt and both
-> datastores have their data directories rewritten. Follow [UPGRADING.md](UPGRADING.md) before
-> deploying.
-
 It provides multiple services to cover different infrastructure needs:
 
 - Running streaming and flattening data pipeline services only (without Superset)

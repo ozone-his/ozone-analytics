@@ -1,56 +1,70 @@
 #!/usr/bin/env bash
-set -e
+#
+# Starts the Ozone Analytics streaming stack.
+#
+# This repo does not run OpenMRS or Odoo. It assumes an Ozone distribution is already running and
+# plugs into its databases as CDC sources (reached on the host, see setDockerHost in utils.sh). The
+# flattening queries and the Flink job images come from that distribution -- fetch it first with:
+#
+#     ./fetch-ozone-distro.sh <version>
+#
+# The stack this starts: Kafka + Kafka Connect (Debezium) -> Flink (streaming flatten) -> analytics
+# PostgreSQL, with Superset for visualization and Redpanda Console for Kafka/Connect inspection.
+set -euo pipefail
 
+cd "$(dirname "${BASH_SOURCE[0]}")"
 source utils.sh
 
-# Export the DISTRO_PATH variable
+# Resolve the distro layout (DISTRO_PATH, ANALYTICS_CONFIG_PATH) and fail early with a clear pointer
+# if it has not been fetched -- every path the services mount hangs off it.
 setupDirs
-
-setDockerHost
-
-# Export the paths variables to point to distro artifacts
-exportEnvs
-
-# Export IP address of the host machine
-if [ "$ENABLE_OAUTH" == "true" ]; then
-  exportHostIP
+if [ ! -f "$ANALYTICS_CONFIG_PATH/config.yaml" ]; then
+    echo "$ERROR No Ozone distro found at $ANALYTICS_CONFIG_PATH."
+    echo "$ERROR Fetch it first:  ./fetch-ozone-distro.sh <version>"
+    exit 1
 fi
 
-# Set the Traefik host names
-if [ "$TRAEFIK" == "true" ]; then
-    echo "$INFO \$TRAEFIK=true, setting Traefik hostnames..."
+# Point the CDC connectors at the running distro's databases, and export the derived paths and
+# config the compose files consume.
+setDockerHost
+exportEnvs
+
+# Superset is reached either through Traefik (hostnames derived from the host IP) or the bundled
+# Nginx proxy. OAuth/Keycloak needs the host IP exported too.
+if [ "${ENABLE_OAUTH:-false}" == "true" ]; then
+    exportHostIP
+fi
+if [ "${TRAEFIK:-false}" == "true" ]; then
+    echo "$INFO TRAEFIK=true: using Traefik hostnames; assuming Traefik runs on the host."
     setTraefikIP
     setTraefikHostnames
 else
-    echo "$INFO \$TRAEFIK!=true, setting Nginx hostnames..."
+    echo "$INFO Using the bundled Nginx proxy."
     setNginxHostnames
 fi
 
-echo "$CONNECT_ODOO_DB_NAME"
+# The streaming stack, brought together from the distro and this repo's compose files.
+compose_files=(
+    docker-compose-db.yaml               # analytics PostgreSQL sink (+ Superset/HAPI databases)
+    docker-compose-migration.yaml        # creates the flattened destination tables
+    docker-compose-streaming-common.yaml # Kafka (KRaft), Debezium Connect, Flink jobmanager/taskmanager
+    docker-compose-redpanda-console.yaml # Kafka + Connect web UI
+    docker-compose-superset.yaml         # dashboards
+)
+compose=(docker compose -p ozone-analytics)
+for f in "${compose_files[@]}"; do compose+=(-f "../docker/$f"); done
 
-# Run Ozone Analytics Services
-#dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-superset.yaml up -d"
-dockerComposeCommand="docker compose -p ozone-analytics -f ../docker/docker-compose-db.yaml -f ../docker/docker-compose-migration.yaml -f ../docker/docker-compose-streaming-common.yaml -f ../docker/docker-compose-redpanda-console.yaml  -f ../docker/docker-compose-superset.yaml up -d"
-echo "$INFO Running Ozone Analytics Services..."
-echo "$dockerComposeCommand"
-$dockerComposeCommand
+echo "$INFO Starting Ozone Analytics streaming services..."
+"${compose[@]}" up -d
 
-# Run Nginx proxy
-if [ "$TRAEFIK" == "true" ]; then
-    echo "$INFO \$TRAEFIK=true, skip running Nginx Proxy..."
-    echo "$INFO Assuming that Traefik is running on the host machine..."
-  else
-    echo "$INFO \$TRAEFIK!=true, running Nginx Proxy..."
+if [ "${TRAEFIK:-false}" != "true" ]; then
+    echo "$INFO Starting the Nginx proxy..."
     docker compose -p ozone-analytics -f ../docker/proxy/docker-compose-nginx.yaml up -d
-    echo "$INFO Nginx is running!"
 fi
 
-# Wait for the services to start
-echo "$INFO Waiting for the services to start..."
-sleep 10 # Wait for 10 seconds
+echo "$INFO Waiting for services to start..."
+sleep 10
 
-# Display Access URLs
-echo "$INFO Ozone Analytics Services are running!"
-echo "$INFO Access URLs:"
-echo "$INFO Superset: $SCHEME://$SUPERSET_HOSTNAME ($([ "$ENABLE_OAUTH" != "true" ] && echo "admin" || echo "jdoe") / password)"
-echo "$INFO Keycloak: $SCHEME://$KEYCLOAK_HOSTNAME (admin / password)"
+echo "$INFO Ozone Analytics is running. Access URLs:"
+echo "$INFO   Superset: $SCHEME://$SUPERSET_HOSTNAME ($([ "${ENABLE_OAUTH:-false}" != "true" ] && echo "admin" || echo "jdoe") / password)"
+echo "$INFO   Keycloak: $SCHEME://$KEYCLOAK_HOSTNAME (admin / password)"
