@@ -33,9 +33,9 @@ services:
       - ODOO_DB_HOST=${ODOO_DB_HOST:-postgresql}
       - ODOO_DB_PORT=${ODOO_DB_PORT:-5432}
       - ANALYTICS_CONFIG_FILE=/analytics/config.yaml
-      # Credentials for the S3 (MinIO) state store; endpoint and bucket live in config.yaml.
-      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      # Credentials for the S3 (SeaweedFS) state store; endpoint and bucket live in config.yaml.
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

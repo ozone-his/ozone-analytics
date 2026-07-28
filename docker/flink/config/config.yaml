@@ -1,45 +1,43 @@
-# Flink cluster configuration (Flink 2.x `config.yaml` format, which replaced `flink-conf.yaml`).
-#
-# This owns HOW the pipelines run. What they compute is defined separately in the analytics
-# pipeline config, mounted from the distro at ANALYTICS_CONFIG_FILE.
-#
-# These settings previously lived in Java, configuring an embedded MiniCluster via env vars
-# (JAVA_OPTS, TOTAL_PROCESS_MEMORY, TASK_MANAGER_SLOTS, ...). The jobs now run on a real cluster,
-# which owns its own configuration, so those env vars are gone and this file replaces them.
-#
-# This file is mounted over the image's own conf/config.yaml, which REPLACES the shipped defaults
-# rather than merging with them. That is why env.java.opts.all has to be reproduced here.
-
-# JVM flags Flink requires on Java 17+ to reach JDK internals the module system closed off.
-# Without them every job dies at startup with InaccessibleObjectException. Copied verbatim from
-# flink:2.0.2-java17 and still valid on 2.2.1, whose own list is a subset of it (2.2.1 dropped
-# --add-exports=java.base/sun.net.util). Per the Flink docs this list "must not be shortened, but
-# only extended", so a superset is safe; re-check it against the image on a Flink upgrade.
-env:
-  java:
-    opts:
-      all: --add-exports=java.base/sun.net.util=ALL-UNNAMED --add-exports=java.rmi/sun.rmi.registry=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-exports=java.security.jgss/sun.security.krb5=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED
-
+blob:
+  server:
+    port: '6124'
+state:
+  checkpoints:
+    num-retained: 2
+    dir: s3://flink-state-bucket/checkpoints/
+  savepoints:
+    dir: s3://flink-state-bucket/savepoints/
+  backend:
+    type: rocksdb
+    incremental: true
+restart-strategy:
+  type: exponential-delay
 jobmanager:
   rpc:
-    address: jobmanager
+    address: 8092b85a99d2
     port: 6123
   memory:
-    # The JobManager runs the application main(), which plans every job and loads its generated
-    # operator classes into Metaspace. Each flattening statement is now its own job, so ~12 are
-    # planned in this one JVM and the 256m default Metaspace overflows: the JobManager OOMs, and in
-    # application mode that resubmits every job, which reloads everything -- a crash loop. Sized to
-    # hold all of them at once with headroom.
     process:
       size: 3g
     jvm-metaspace:
       size: 1g
-
-# Each flattening statement runs as its own job, and a streaming job holds its slots for as long as
-# it runs. Total slots (numberOfTaskSlots x TASK_MANAGER_REPLICAS) must therefore be at least
-# <number of flattening statements> x parallelism.default -- currently 12 x 2 = 24 -- or the jobs
-# that miss out sit pending forever, waiting for slots that never free. 32 leaves headroom.
-# Scale memory alongside slots: managed memory is divided across them.
+metrics:
+  reporter:
+    prom:
+      factory:
+        class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+      port: 9250
+  reporters: prom
+query:
+  server:
+    port: '6125'
+s3:
+  endpoint: http://seaweedfs:8333
+  path:
+    style:
+      access: true
+parallelism:
+  default: 2
 taskmanager:
   numberOfTaskSlots: 32
   memory:
@@ -47,74 +45,28 @@ taskmanager:
       size: 8g
     managed:
       fraction: 0.8
-
-parallelism:
-  default: 2
-
-# Exactly-once checkpointing to S3 (MinIO). Unaligned checkpoints keep barriers moving when a sink
-# backpressures, so one slow sink does not stall its job's checkpoints.
+env:
+  java:
+    opts:
+      all: --add-exports=java.base/sun.net.util=ALL-UNNAMED --add-exports=java.rmi/sun.rmi.registry=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-exports=java.security.jgss/sun.security.krb5=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED
 execution:
   checkpointing:
     mode: EXACTLY_ONCE
-    interval: 10min
-    timeout: 10min
+    tolerable-failed-checkpoints: 50
     unaligned:
       enabled: true
-    tolerable-failed-checkpoints: 50
-
-state:
-  backend:
-    type: rocksdb
-    incremental: true
-  checkpoints:
-    dir: s3://flink-state-bucket/checkpoints/
-    num-retained: 2
-  savepoints:
-    dir: s3://flink-state-bucket/savepoints/
-
-restart-strategy:
-  type: exponential-delay
-
+    interval: 10min
+    timeout: 10min
 table:
   exec:
-    sink:
-      # Flink 2.3 added this check, defaulting to true: it rejects a query whose upsert key differs
-      # from the sink's primary key unless the INSERT carries an explicit ON CONFLICT clause. The
-      # flattening queries trip it (Flink infers no upsert key from them), so without this 2.3
-      # refuses to submit them at all.
-      #
-      # TEMPORARY. Disabling it restores the pre-2.3 behaviour, but the check is pointing at
-      # something real: with no inferable upsert key, two records mapping to the same primary key
-      # can be applied in a non-deterministic order. That was equally true before 2.3 -- 2.3 merely
-      # started saying so. The proper fix is an explicit ON CONFLICT policy per INSERT, which is a
-      # correctness decision about the queries, not something to paper over here.
-      require-on-conflict: false
-    # Batch the writes to PostgreSQL rather than issuing one statement per row.
     mini-batch:
+      size: 5000
       enabled: true
       allow-latency: 5s
-      size: 5000
-    # Without a TTL a streaming join retains state forever; this is the usual cause of unbounded
-    # state growth in a long-running Flink SQL job.
+    sink:
+      require-on-conflict: false
     state:
       ttl: 1h
-
-# Presto S3 access to MinIO. Credentials come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in the
-# environment via the standard AWS credential chain, so none is written here. Path-style access is
-# required because MinIO does not serve virtual-host style buckets.
-s3:
-  endpoint: http://minio:9099
-  path:
-    style:
-      access: true
-
-metrics:
-  reporters: prom
-  reporter:
-    prom:
-      factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
-      port: 9250
-
 rest:
-  address: 0.0.0.0
   bind-address: 0.0.0.0
+  address: 0.0.0.0

@@ -168,10 +168,10 @@ services:
       - ODOO_DB_HOST=${ODOO_DB_HOST:-postgresql}
       - ODOO_DB_PORT=${ODOO_DB_PORT:-5432}
       - ANALYTICS_CONFIG_FILE=/analytics/config.yaml
-      # Credentials for the S3 (MinIO) checkpoint and savepoint store, read by the standard AWS
+      # Credentials for the S3 (SeaweedFS) checkpoint and savepoint store, read by the standard AWS
       # credential chain. The bucket and endpoint themselves are set in flink/config/config.yaml.
-      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     volumes: &flink-volumes
       - flink-shared-data:/tmp
       - ./data:/data
