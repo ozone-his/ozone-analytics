@@ -63,6 +63,20 @@ state:
   savepoints:
     dir: s3://flink-state-bucket/savepoints/
 
+# High availability. The streaming jobs are submitted to this SESSION cluster by a client, and HA
+# stores the job graphs and each job's latest-checkpoint pointer in ZooKeeper + S3, so a JobManager
+# that restarts recovers the running jobs from their checkpoint instead of re-running main() and
+# starting them over. (Application mode cannot recover a multi-job cluster this way -- the reason
+# streaming uses a session cluster while batch/export stay in application mode on config.yaml.)
+#
+# This is config.yaml plus this block; keep the shared settings above in sync with config.yaml.
+high-availability:
+  type: zookeeper
+  storageDir: s3://flink-state-bucket/ha/
+  cluster-id: /ozone-analytics-streaming
+  zookeeper:
+    quorum: zookeeper:2181
+
 restart-strategy:
   type: exponential-delay
 

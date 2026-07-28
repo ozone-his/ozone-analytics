@@ -122,33 +122,74 @@ services:
             --data @"$$f" "http://connect:8083/connectors/$$name/config" || exit 1
         done
         echo "connectors registered"
-  # Flink cluster for the streaming pipeline, in application mode.
+  # ---------------------------------------------------------------------------
+  # Streaming: a Flink SESSION cluster with high availability.
   #
-  # The jobs used to boot an embedded MiniCluster inside their own JVM, tuned through the
-  # JAVA_OPTS / *_MEMORY / TASK_MANAGER_SLOTS environment variables that used to be listed here.
-  # They now run on this cluster, which owns that configuration in ./flink/config/config.yaml, so
-  # those variables are gone: they would be silently ignored.
+  # The streaming jobs run for as long as the pipeline exists. Rather than bake them into the
+  # application image -- application mode cannot give a cluster running many jobs HA -- they are
+  # submitted to this long-lived session cluster by the job-submitter below. HA (ZooKeeper + S3)
+  # lets the JobManager recover the running jobs from their last checkpoint after a restart.
   #
-  # The image decides which pipeline it runs, so the JobManager runs its baked-in command and the
-  # TaskManager runs the same image with the command overridden.
-  jobmanager: &flink
+  # HA lives in config-ha.yaml, not the shared config.yaml: the batch and export jobs run in
+  # application mode on config.yaml and must not enable HA. Batch and export are unchanged.
+  # ---------------------------------------------------------------------------
+
+  # Flink's HA backend. Kafka runs in KRaft mode, so this ZooKeeper is dedicated to Flink.
+  zookeeper:
     networks:
       ozone-analytics:
+    image: zookeeper:3.9
     restart: unless-stopped
-    image: mekomsolutions/ozone-flink-jobs
+
+  # Session cluster. Uses the base Flink image, not ozone-flink-jobs: the application jar is not on
+  # the cluster classpath (usrlib is only loaded in application mode) -- it rides in with each job
+  # the submitter uploads. The S3 plugin is enabled from opt/ for checkpoints and the HA store.
+  jobmanager: &flink-cluster
+    networks:
+      ozone-analytics:
+    image: flink:2.3.0-java17
+    restart: unless-stopped
+    command: [ "jobmanager" ]
     ports:
       - "8085:8081"
       - "9250:9250"
+    environment: &flink-cluster-env
+      - ENABLE_BUILT_IN_PLUGINS=flink-s3-fs-presto-2.3.0.jar
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - ./flink/config/config-ha.yaml:/opt/flink/conf/config.yaml:ro
     depends_on:
-       analytics-migration:
-          condition: service_completed_successfully
-       kafka:
-         condition: service_healthy
-       kafka-setup:
-         condition: service_completed_successfully
-    labels:
-      - kompose.service.group=flink-manager
-    environment: &flink-env
+      zookeeper:
+        condition: service_started
+      # Not just SeaweedFS healthy: the HA storageDir lives in flink-state-bucket, so the bucket must
+      # exist before the JobManager initializes its HA services.
+      seaweedfs-buckets:
+        condition: service_completed_successfully
+
+  taskmanager:
+    <<: *flink-cluster
+    command: [ "taskmanager" ]
+    ports: []
+    depends_on:
+      - jobmanager
+    deploy:
+      replicas: ${TASK_MANAGER_REPLICAS:-1}
+
+  # Client that submits the streaming jobs to the session cluster, then exits. The only place the
+  # application jar (mekomsolutions/ozone-flink-jobs) and the pipeline config live. Idempotent: if
+  # the cluster already has jobs running (recovered from HA after a restart), it does not resubmit.
+  job-submitter:
+    networks:
+      ozone-analytics:
+    image: mekomsolutions/ozone-flink-jobs
+    restart: on-failure
+    volumes:
+      - ./flink/config/config.yaml:/opt/flink/conf/config.yaml:ro
+      - ${ANALYTICS_SOURCE_TABLES_PATH}:/analytics/source-tables:ro
+      - ${ANALYTICS_QUERIES_PATH}:/analytics/queries:ro
+      - ${ANALYTICS_CONFIG_FILE}:/analytics/config.yaml:ro
+    environment:
       - ANALYTICS_SOURCE_TABLES_PATH=/analytics/source-tables
       - ANALYTICS_QUERIES_PATH=/analytics/queries
       - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
@@ -168,34 +209,33 @@ services:
       - ODOO_DB_HOST=${ODOO_DB_HOST:-postgresql}
       - ODOO_DB_PORT=${ODOO_DB_PORT:-5432}
       - ANALYTICS_CONFIG_FILE=/analytics/config.yaml
-      # Credentials for the S3 (SeaweedFS) checkpoint and savepoint store, read by the standard AWS
-      # credential chain. The bucket and endpoint themselves are set in flink/config/config.yaml.
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-    volumes: &flink-volumes
-      - flink-shared-data:/tmp
-      - ./data:/data
-      - ./flink/config/config.yaml:/opt/flink/conf/config.yaml
-      - ${ANALYTICS_SOURCE_TABLES_PATH}:/analytics/source-tables
-      - ${ANALYTICS_QUERIES_PATH}:/analytics/queries
-      - ${ANALYTICS_CONFIG_FILE}:/analytics/config.yaml
-
-  # Runs the actual work. Without this the JobManager accepts the job and then waits forever for
-  # slots that never arrive, because the embedded MiniCluster that used to supply them is gone.
-  taskmanager:
-    <<: *flink
-    command: taskmanager
-    ports: []
-    environment: *flink-env
-    volumes: *flink-volumes
-    labels:
-      - kompose.service.group=flink-manager
+    command:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        JM=jobmanager:8081
+        echo "Waiting for the session cluster at $$JM ..."
+        until /opt/flink/bin/flink list -m $$JM >/dev/null 2>&1; do sleep 3; done
+        running=$$(/opt/flink/bin/flink list -m $$JM -r 2>/dev/null | grep -c '(RUNNING)' || true)
+        if [ "$${running:-0}" -gt 0 ]; then
+          echo "$$running job(s) already running (recovered from HA); not resubmitting."
+          exit 0
+        fi
+        echo "Submitting streaming jobs to the session cluster..."
+        exec /opt/flink/bin/flink run -m $$JM -d \
+          -c com.ozonehis.analytics.AnalyticsJob /opt/flink/usrlib/analytics-etl.jar streaming
     depends_on:
-      - jobmanager
-    deploy:
-      replicas: ${TASK_MANAGER_REPLICAS:-1}
+      jobmanager:
+        condition: service_started
+      kafka-setup:
+        condition: service_completed_successfully
+      analytics-migration:
+        condition: service_completed_successfully
+
 volumes:
-   flink-shared-data: ~
    kafka-data: ~
 networks:
   ozone-analytics:
