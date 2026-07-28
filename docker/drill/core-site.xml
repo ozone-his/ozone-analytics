@@ -47,7 +47,7 @@
 
     <property>
         <name>fs.s3a.endpoint</name>
-        <value>http://minio:9099</value>
+        <value>http://seaweedfs:8333</value>
     </property>
 
     <property>
