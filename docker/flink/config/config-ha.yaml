@@ -1,15 +1,10 @@
-# Flink cluster configuration (Flink 2.x `config.yaml` format, which replaced `flink-conf.yaml`).
-#
 # This owns HOW the pipelines run. What they compute is defined separately in the analytics pipeline
 # config, mounted from the distro at ANALYTICS_CONFIG_FILE.
 #
-# The file is shared by the application-mode batch and export jobs. The streaming session cluster
-# uses config-ha.yaml instead (this file plus a high-availability block) -- HA is not set here,
-# because application mode does not support HA for a cluster running many jobs at once.
 
 # JVM flags Flink requires on Java 17+ to reach JDK internals the module system closed off. Without
 # them the job dies at startup with InaccessibleObjectException. The list "must not be shortened,
-# only extended" per the Flink docs; re-check it against the image on a Flink upgrade.
+# only extended" per the Flink docs.
 env:
   java:
     opts:
@@ -20,9 +15,6 @@ jobmanager:
     address: jobmanager
     port: 6123
   memory:
-    # Each flattening statement runs as its own job, planned in this one JVM, loading its generated
-    # operator classes into Metaspace. The 256m default overflows for ~12 jobs and the JobManager
-    # OOMs; sized here to hold every job's classes at once with headroom.
     process:
       size: 3g
     jvm-metaspace:
@@ -83,10 +75,6 @@ restart-strategy:
 table:
   exec:
     sink:
-      # Flink 2.3 rejects a query whose upsert key differs from the sink's primary key unless the
-      # INSERT carries an explicit ON CONFLICT clause; the flattening queries trip it. TEMPORARY --
-      # the proper fix is an explicit ON CONFLICT policy per INSERT, a correctness decision about the
-      # queries.
       require-on-conflict: false
     # Batch writes to PostgreSQL rather than one statement per row.
     mini-batch:
