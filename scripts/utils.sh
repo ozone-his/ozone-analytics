@@ -62,7 +62,6 @@ function exportEnvs () {
     export CONNECT_ODOO_DB_PASSWORD=password
     export ANALYTICS_DB_PORT=5432
 
-    export JAVA_OPTS='-Xms2048m -Xmx8192m'
     export SCHEME=https
 
     echo "$INFO Distro config: $ANALYTICS_CONFIG_PATH"
