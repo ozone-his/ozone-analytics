@@ -140,22 +140,20 @@ docker compose -f docker-compose-db.yaml -f docker-compose-superset.yaml -f dock
 
 ### Running with helper scripts
 The examples above are for running the services manually, we have included helper scripts to simplify the process of running the services. The helper scripts are located in the `scripts` folder. The scripts assume you have an Ozone instance running locally. If you don't follow the instructions [here](#to-run) section to start the services.
-To run the services using the helper scripts you can follow the steps below from the root of the project.:
 
-From the root of the project run the following commands:
+`start.sh` is a one-command entry point: it fetches the Ozone Pro Distro if it has not been fetched yet, then starts the streaming pipelines. From the root of the project:
 
 ```bash
 cd scripts
+OZONE_DISTRO_VERSION=1.0.0-SNAPSHOT ./start.sh
 ```
-Fetch the Ozone Pro Distro
+
+`OZONE_DISTRO_VERSION` is only required the first time; later runs reuse whatever was fetched. It's one of several env vars that configure *which* distro to fetch and *where* from -- see the comment header in `scripts/start.sh` for the full list (`OZONE_DISTRO_ARTIFACT`, `OZONE_DISTRO_REPOSITORY`, `OZONE_DIR`, `FETCH_OZONE_DISTRO`, `FORCE_FETCH_OZONE_DISTRO`).
+
+To fetch (or refetch) the distro explicitly instead -- e.g. to refresh a SNAPSHOT -- without starting anything:
 
 ```bash
 ./fetch-ozone-distro.sh 1.0.0-SNAPSHOT
-```
-Start the project with streaming pipelines
-
-```bash
-./start.sh
 ```
 
 #### Parquet export using an OpenMRS database backup
