@@ -141,7 +141,7 @@ services:
     image: zookeeper:3.9
     restart: unless-stopped
 
-  # Session cluster. Uses the base Flink image, not ozone-flink-jobs: the application jar is not on
+  # Session cluster. Uses the base Flink image, not ozone-flink-jobs-streaming: the application jar is not on
   # the cluster classpath (usrlib is only loaded in application mode) -- it rides in with each job
   # the submitter uploads. The S3 plugin is enabled from opt/ for checkpoints and the HA store.
   jobmanager: &flink-cluster
@@ -177,12 +177,13 @@ services:
       replicas: ${TASK_MANAGER_REPLICAS:-1}
 
   # Client that submits the streaming jobs to the session cluster, then exits. The only place the
-  # application jar (mekomsolutions/ozone-flink-jobs) and the pipeline config live. Idempotent: if
-  # the cluster already has jobs running (recovered from HA after a restart), it does not resubmit.
+  # application jar (mekomsolutions/ozone-flink-jobs-streaming) and the pipeline config live.
+  # Idempotent: if the cluster already has jobs running (recovered from HA after a restart), it does
+  # not resubmit.
   job-submitter:
     networks:
       ozone-analytics:
-    image: mekomsolutions/ozone-flink-jobs
+    image: mekomsolutions/ozone-flink-jobs-streaming
     restart: on-failure
     volumes:
       - ./flink/config/config.yaml:/opt/flink/conf/config.yaml:ro
