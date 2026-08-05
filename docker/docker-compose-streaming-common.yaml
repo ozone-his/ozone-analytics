@@ -1,7 +1,4 @@
 services:
-  # Apache Kafka in KRaft mode: the broker runs its own controller quorum, so there is no
-  # ZooKeeper. This replaces the debezium/kafka image, which pinned Kafka to whatever the Debezium
-  # release shipped and is no longer published for current Debezium versions.
   kafka:
     restart: unless-stopped
     image: apache/kafka:${KAFKA_VERSION}
@@ -27,7 +24,7 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1" ]
       interval: 10s
       timeout: 10s
       retries: 15
@@ -51,15 +48,11 @@ services:
             /opt/kafka/bin/kafka-configs.sh --bootstrap-server=kafka:9092 --entity-type topics --entity-name $$topic --alter --add-config retention.ms=31556736000
         done
     environment:
-     - TOPICS=${CREATE_TOPICS}
+      - TOPICS=${CREATE_TOPICS}
     depends_on:
       kafka:
         condition: service_healthy
-  # Debezium 3.x, from quay.io (Docker Hub no longer receives current Debezium releases).
-  #
-  # The TimestampConverter SMT jar that used to be mounted here is gone: it existed because
-  # Debezium 1.9 emitted temporal columns as epoch numbers, which the flattening SQL could not
-  # read. Debezium 3.x emits them as formatted strings natively, so the workaround is obsolete.
+
   connect:
     restart: unless-stopped
     image: quay.io/debezium/connect:${DEBEZIUM_VERSION}
@@ -97,9 +90,9 @@ services:
       - CONNECT_ODOO_DB_INCLUDE_LIST=odoo
 
   # Registers the Debezium connectors once Connect is up. A stock curl one-shot that PUTs the
-  # connector definitions in ./connect, replacing the bespoke ozone-analytics-setup-connect image.
-  # The ${file:...} references in those files are resolved by Connect at registration time, so no
-  # secrets pass through here.
+  # connector definitions in ./connect/*.json to the Connect REST API. The connector definitions are parameterized with
+  # ${...} and resolved at runtime by docker-compose, so they can reference secrets in .env without baking them into the
+  # image.
   connect-setup:
     image: curlimages/curl:8.11.1
     restart: on-failure
@@ -109,7 +102,7 @@ services:
       - connect
     volumes:
       - ./connect:/connectors:ro
-    entrypoint: ["sh", "-c"]
+    entrypoint: [ "sh", "-c" ]
     command:
       - |
         until curl -sf http://connect:8083/connectors >/dev/null 2>&1; do
@@ -170,7 +163,7 @@ services:
   taskmanager:
     <<: *flink-cluster
     command: [ "taskmanager" ]
-    ports: []
+    ports: [ ]
     depends_on:
       - jobmanager
     deploy:
@@ -183,7 +176,8 @@ services:
   job-submitter:
     networks:
       ozone-analytics:
-    image: mekomsolutions/ozone-flink-jobs-streaming
+    image: ozone-flink-jobs-streaming
+    pull_policy: missing
     restart: on-failure
     volumes:
       - ./flink/config/config.yaml:/opt/flink/conf/config.yaml:ro
@@ -237,6 +231,6 @@ services:
         condition: service_completed_successfully
 
 volumes:
-   kafka-data: ~
+  kafka-data: ~
 networks:
   ozone-analytics:

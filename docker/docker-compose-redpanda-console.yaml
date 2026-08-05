@@ -1,9 +1,4 @@
 services:
-  # Kafka/Connect web UI. Replaces Kowl (rsmnarts/kowl), which is unmaintained and was pinned to a
-  # floating tag. Redpanda Console is Kowl's maintained successor -- same project, renamed after the
-  # acquisition -- so this is a rename plus a version pin rather than a new tool.
-  #
-  # Note the config key: Console v2 renamed Kowl's `connect:` block to `kafkaConnect:`.
   redpanda-console:
     image: redpandadata/console:${REDPANDA_CONSOLE_VERSION}
     networks:
