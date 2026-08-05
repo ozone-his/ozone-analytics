@@ -72,7 +72,11 @@ sleep 10
 
 echo "$INFO Ozone Analytics is running. Access URLs:"
 echo "$INFO   Superset:         $SCHEME://$SUPERSET_HOSTNAME ($([ "${ENABLE_OAUTH:-false}" != "true" ] && echo "admin" || echo "jdoe") / password)"
-echo "$INFO   Keycloak:         $SCHEME://$KEYCLOAK_HOSTNAME (admin / password)"
+if [ "${ENABLE_OAUTH:-false}" == "true" ]; then
+    # Keycloak itself is not part of this stack -- it belongs to the running Ozone distro this
+    # repo plugs into, so only worth pointing at when Superset is actually configured to use it.
+    echo "$INFO   Keycloak:         $SCHEME://$KEYCLOAK_HOSTNAME (admin / password)"
+fi
 echo "$INFO   Flink UI:         http://localhost:8085  (one streaming job per flattened table)"
 echo "$INFO   Kafka/Connect UI: http://localhost:8282  (Redpanda Console)"
 echo "$INFO   SeaweedFS filer:  http://localhost:8888  (browse the Flink state store)"
