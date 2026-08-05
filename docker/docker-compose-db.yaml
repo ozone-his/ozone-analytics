@@ -1,7 +1,6 @@
 # Only the analytics sink runs here. The CDC source databases (OpenMRS, Odoo) belong to the running
 # Ozone distro and are reached on the host, so this repo does not run its own MySQL/MariaDB.
 services:
-  # Holds the analytics, superset, hapi and odoo databases.
   postgresql:
     networks:
       ozone-analytics:
@@ -17,7 +16,7 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      # Analystics
+      # Analytics
       ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME}
       ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
       ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}

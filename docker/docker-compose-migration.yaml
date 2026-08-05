@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   odoo-replica-identity-migration:
     image: liquibase/liquibase:4.24
