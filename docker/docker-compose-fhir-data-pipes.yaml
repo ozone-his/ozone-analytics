@@ -43,7 +43,7 @@ services:
       - SINK_FHIR_SERVER_URL=${SINK_FHIR_SERVER_URL:-}
       - TZ=${TZ:-UTC}
     ports:
-      - '8092:8080'
+      - '${FHIR_DATA_PIPES_PORT:8380}:8080'
     networks:
       ozone-analytics:
     depends_on:
