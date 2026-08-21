@@ -1,15 +1,10 @@
 # Batch flattening pipeline.
 #
-# Runs in Flink application mode: the image bakes in the pipeline, the JobManager runs it, and the
-# TaskManager runs the same image with the command overridden. Runtime tuning (memory,
-# parallelism, checkpointing, S3) belongs to ./flink/config/config.yaml -- which is why the
-# JAVA_OPTS / *_MEMORY variables that used to be set here are gone. They configured the embedded
-# MiniCluster that no longer exists, and would now be silently ignored.
 services:
   batch-etl: &batch
     networks:
       ozone-analytics:
-    image: mekomsolutions/ozone-flink-jobs-batch
+    image: mekomsolutions/ozone-flink-jobs-batch:${OZONE_FLINK_JOBS_VERSION:-latest}
     depends_on:
       analytics-migration:
         condition: service_completed_successfully
