@@ -155,8 +155,6 @@ services:
     depends_on:
       zookeeper:
         condition: service_started
-      # Not just SeaweedFS healthy: the HA storageDir lives in flink-state-bucket, so the bucket must
-      # exist before the JobManager initializes its HA services.
       seaweedfs-buckets:
         condition: service_completed_successfully
 
@@ -176,8 +174,7 @@ services:
   job-submitter:
     networks:
       ozone-analytics:
-    image: ozone-flink-jobs-streaming:${OZONE_FLINK_JOBS_VERSION:-latest}
-    pull_policy: missing
+    image: mekomsolutions/ozone-flink-jobs-streaming:${OZONE_FLINK_JOBS_VERSION:-latest}
     restart: on-failure
     volumes:
       - ./flink/config/config.yaml:/opt/flink/conf/config.yaml:ro
