@@ -11,6 +11,7 @@ function create_user_and_database() {
 	    CREATE USER $user WITH  PASSWORD '$password';
 	    CREATE DATABASE $database;
 	    GRANT ALL PRIVILEGES ON DATABASE $database TO $user;
+	    GRANT ALL ON SCHEMA public TO $user;
 EOSQL
 }
 create_user_and_database ${ODOO_DB_NAME} ${ODOO_DB_USER} ${ODOO_DB_PASSWORD}
