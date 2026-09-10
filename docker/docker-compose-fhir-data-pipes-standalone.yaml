@@ -1,5 +1,10 @@
 # Override for site-local FHIR datapipes that sync to a remote central HAPI sink
 # (no local hapi-server required).
+# For a partitioned central server, set either:
+#   SINK_FHIR_SERVER_URL=https://central-hapi:8080/fhir/<partitionName>
+# or:
+#   SINK_FHIR_BASE_URL=https://central-hapi:8080/fhir
+#   FHIR_SINK_PARTITION_NAME=<partitionName>
 # See https://github.com/ozone-his/ozone-analytics/blob/main/docker/docker-compose-fhir-data-pipes-standalone.yaml
 services:
   pipeline-controller:

@@ -43,6 +43,9 @@ fhirdata:
   viewDefinitionsDir: "/views"
   createParquetViews: true
   sinkDbConfigPath: "config/hapi-postgres-config_local_views.json"
+  # Central partitioned HAPI: use /fhir/{partitionName} (request-tenant mode).
+  # Set SINK_FHIR_SERVER_URL directly, or SINK_FHIR_BASE_URL + FHIR_SINK_PARTITION_NAME
+  # (composed in docker-entrypoint-wrapper.sh).
   sinkFhirServerUrl: "${SINK_FHIR_SERVER_URL}"
   #sinkUserName: "hapi"
   #sinkPassword: "hapi123"
