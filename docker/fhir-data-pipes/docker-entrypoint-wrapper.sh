@@ -61,6 +61,25 @@ wait_for_fhir() {
 
 echo "[wrapper] Starting FHIR Data Pipes container..." >&2
 
+# Compose a partitioned central sink URL when base + partition are set and
+# SINK_FHIR_SERVER_URL is not already provided.
+# HAPI request-tenant URLs are /fhir/{partitionName} (tenant after /fhir).
+# Example: SINK_FHIR_BASE_URL=https://central-hapi:8080/fhir FHIR_SINK_PARTITION_NAME=lis1
+#       -> SINK_FHIR_SERVER_URL=https://central-hapi:8080/fhir/lis1
+if [ -z "${SINK_FHIR_SERVER_URL:-}" ] \
+  && [ -n "${SINK_FHIR_BASE_URL:-}" ] \
+  && [ -n "${FHIR_SINK_PARTITION_NAME:-}" ]; then
+  sink_base="${SINK_FHIR_BASE_URL%/}"
+  # Allow host-only base (…:8080) or FHIR base (…:8080/fhir)
+  case "${sink_base}" in
+    */fhir) export SINK_FHIR_SERVER_URL="${sink_base}/${FHIR_SINK_PARTITION_NAME}" ;;
+    *)      export SINK_FHIR_SERVER_URL="${sink_base}/fhir/${FHIR_SINK_PARTITION_NAME}" ;;
+  esac
+  echo "[wrapper] Composed SINK_FHIR_SERVER_URL=${SINK_FHIR_SERVER_URL}" >&2
+elif [ -n "${SINK_FHIR_SERVER_URL:-}" ]; then
+  echo "[wrapper] Using SINK_FHIR_SERVER_URL=${SINK_FHIR_SERVER_URL}" >&2
+fi
+
 # Run environment variable substitution
 if ! /app/substitute-envs.sh; then
   echo "[wrapper] substitute-envs.sh failed with exit code $?" >&2

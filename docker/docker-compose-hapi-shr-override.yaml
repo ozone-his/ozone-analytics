@@ -1,4 +1,14 @@
 # SHR / consolidated-server settings: allow cross-site sync with unresolved references.
+# Enables HAPI request-tenant partitioning so each site sinks to /fhir/{partitionName}
+# and identical logical IDs no longer collide (HTTP 409) across sites.
+#
+# IMPORTANT: database_partition_mode_enabled requires an empty HAPI DB on first start
+# (or a wipe/recreate of the hapi database). Do not enable this on a DB that already
+# has FHIR resources without a planned migration.
+#
+# Create partitions before the first sync, e.g.:
+#   ./scripts/create-fhir-partition.sh http://localhost:8093 1 lis1
+# Site sink base URL becomes: http://localhost:8093/fhir/lis1
 services:
   hapi-server:
     environment:
@@ -9,3 +19,8 @@ services:
       # With ANY, server row IDs must be UUIDs so they never collide with client-assigned logical IDs.
       - hapi.fhir.server_id_strategy=UUID
       - hapi.fhir.update_enabled=true
+      - hapi.fhir.partitioning.default_partition_id=0
+      - hapi.fhir.partitioning.request_tenant_partitioning_mode=true
+      - hapi.fhir.partitioning.database_partition_mode_enabled=true
+      - hapi.fhir.partitioning.allow_references_across_partitions=false
+      - hapi.fhir.partitioning.partitioning_include_in_search_hashes=false
