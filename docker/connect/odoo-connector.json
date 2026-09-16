@@ -1,0 +1,18 @@
+{
+  "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+  "tasks.max": "1",
+  "database.hostname": "${file:/kafka/config/connect-distributed.properties:odoo.db.hostname}",
+  "database.port": "${file:/kafka/config/connect-distributed.properties:odoo.db.port}",
+  "database.user": "${file:/kafka/config/connect-distributed.properties:odoo.db.username}",
+  "database.password": "${file:/kafka/config/connect-distributed.properties:odoo.db.password}",
+  "database.dbname": "${file:/kafka/config/connect-distributed.properties:odoo.db.name}",
+  "plugin.name": "pgoutput",
+  "topic.prefix": "${file:/kafka/config/connect-distributed.properties:odoo.db.server.name}",
+  "table.include.list": "public.(.*)",
+  "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "key.converter.schemas.enable": "true",
+  "heartbeat.interval.ms": "5000",
+  "slot.name": "odoo_debezium",
+  "publication.name": "odoo_publication",
+  "decimal.handling.mode": "double"
+}

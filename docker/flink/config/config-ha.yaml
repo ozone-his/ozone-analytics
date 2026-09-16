@@ -1,0 +1,106 @@
+# This owns HOW the pipelines run. What they compute is defined separately in the analytics pipeline
+# config, mounted from the distro at ANALYTICS_CONFIG_FILE.
+#
+
+# JVM flags Flink requires on Java 17+ to reach JDK internals the module system closed off. Without
+# them the job dies at startup with InaccessibleObjectException. The list "must not be shortened,
+# only extended" per the Flink docs.
+env:
+  java:
+    opts:
+      all: --add-exports=java.base/sun.net.util=ALL-UNNAMED --add-exports=java.rmi/sun.rmi.registry=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-exports=java.security.jgss/sun.security.krb5=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED
+
+jobmanager:
+  rpc:
+    address: jobmanager
+    port: 6123
+  memory:
+    process:
+      size: 3g
+    jvm-metaspace:
+      size: 1g
+
+# Each flattening statement runs as its own job and, when streaming, holds its slots for the life of
+# the job. Total slots (numberOfTaskSlots x TASK_MANAGER_REPLICAS) must be at least
+# <number of statements> x parallelism.default, or later jobs sit pending forever.
+taskmanager:
+  numberOfTaskSlots: 32
+  memory:
+    process:
+      size: 8g
+    managed:
+      fraction: 0.8
+
+parallelism:
+  default: 2
+
+# Exactly-once checkpointing to S3 (SeaweedFS). Unaligned checkpoints keep barriers moving when a
+# sink backpressures, so one slow sink does not stall its job's checkpoints.
+execution:
+  checkpointing:
+    mode: EXACTLY_ONCE
+    interval: 10min
+    timeout: 10min
+    unaligned:
+      enabled: true
+    tolerable-failed-checkpoints: 50
+
+state:
+  backend:
+    type: rocksdb
+    incremental: true
+  checkpoints:
+    dir: s3://flink-state-bucket/checkpoints/
+    num-retained: 2
+  savepoints:
+    dir: s3://flink-state-bucket/savepoints/
+
+# High availability. The streaming jobs are submitted to this SESSION cluster by a client, and HA
+# stores the job graphs and each job's latest-checkpoint pointer in ZooKeeper + S3, so a JobManager
+# that restarts recovers the running jobs from their checkpoint instead of re-running main() and
+# starting them over. (Application mode cannot recover a multi-job cluster this way -- the reason
+# streaming uses a session cluster while batch/export stay in application mode on config.yaml.)
+#
+# This is config.yaml plus this block; keep the shared settings above in sync with config.yaml.
+high-availability:
+  type: zookeeper
+  storageDir: s3://flink-state-bucket/ha/
+  cluster-id: /ozone-analytics-streaming
+  zookeeper:
+    quorum: zookeeper:2181
+
+restart-strategy:
+  type: exponential-delay
+
+table:
+  exec:
+    sink:
+      require-on-conflict: false
+    # Batch writes to PostgreSQL rather than one statement per row.
+    mini-batch:
+      enabled: true
+      allow-latency: 5s
+      size: 5000
+    # Without a TTL a streaming join retains state forever -- the usual cause of unbounded state.
+    state:
+      ttl: 1h
+
+# Presto S3 access to SeaweedFS. Credentials come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in
+# the environment via the standard AWS credential chain. Path-style access is required because
+# SeaweedFS does not serve virtual-host style buckets.
+s3:
+  endpoint: http://seaweedfs:8333
+  path:
+    style:
+      access: true
+
+metrics:
+  reporters: prom
+  reporter:
+    prom:
+      factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+      port: 9250
+
+rest:
+  address: 0.0.0.0
+  bind-address: 0.0.0.0
