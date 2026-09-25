@@ -29,3 +29,8 @@ execution.attached: false
 
 # This is required to track the pipeline metrics when FlinkRunner is used.
 execution.job-listeners: com.google.fhir.analytics.metrics.FlinkJobListener
+
+restart-strategy.type: fixed-delay
+restart-strategy.fixed-delay.attempts: 5
+restart-strategy.fixed-delay.delay: 10 s
+
