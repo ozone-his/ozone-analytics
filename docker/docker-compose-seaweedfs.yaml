@@ -1,0 +1,65 @@
+services:
+  # SeaweedFS is the S3 store for Flink checkpoints and savepoints. It replaces MinIO: the same S3
+  # API (so only the endpoint changes), but lighter and without MinIO's community-edition
+  # restrictions. `weed server -s3` runs the master, volume, filer and S3 gateway in one process,
+  # bound to 0.0.0.0 so both its healthcheck and in-cluster clients reach it.
+  seaweedfs:
+    networks:
+      ozone-analytics:
+    image: chrislusf/seaweedfs:${SEAWEEDFS_VERSION}
+    restart: unless-stopped
+    ports:
+      - "8333:8333"   # S3 API
+      - "8888:8888"   # filer UI, to browse the state store
+    volumes:
+      - ${SEAWEEDFS_DATA_PATH:-seaweedfs-data}:/data
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    # Write the S3 auth config from the credentials, then start the server. The identity's key pair
+    # is what Flink signs its requests with.
+    entrypoint: [ "/bin/sh", "-ec" ]
+    command:
+      - |
+        cat > /tmp/s3.json <<CFG
+        {"identities":[{"name":"flink","credentials":[{"accessKey":"$${AWS_ACCESS_KEY_ID}","secretKey":"$${AWS_SECRET_ACCESS_KEY}"}],"actions":["Admin"]}]}
+        CFG
+        exec weed server -dir=/data -s3 -s3.config=/tmp/s3.json -ip.bind=0.0.0.0
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q -O /dev/null http://localhost:9333/ || exit 1" ]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # Creates the buckets the stack expects, including the Flink checkpoint/savepoint store. Failing
+  # here loudly matters: a missing bucket makes Flink fail every checkpoint with NoSuchBucket while
+  # the job still reports RUNNING, because tolerable-failed-checkpoints hides it.
+  seaweedfs-buckets:
+    networks:
+      ozone-analytics:
+    image: chrislusf/seaweedfs:${SEAWEEDFS_VERSION}
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+    environment:
+      DEFAULT_BUCKETS: ${DEFAULT_BUCKETS}
+    entrypoint: [ "/bin/sh", "-ec" ]
+    command:
+      - |
+        for b in $$(echo "$${DEFAULT_BUCKETS}" | tr ',' ' '); do
+          created=""
+          for i in $$(seq 1 20); do
+            echo "s3.bucket.create -name $$b" | weed shell -master=seaweedfs:9333 >/dev/null 2>&1 || true
+            if echo "s3.bucket.list" | weed shell -master=seaweedfs:9333 2>/dev/null | grep -q "$$b"; then
+              echo "bucket $$b ready"; created=1; break
+            fi
+            echo "waiting for seaweedfs..."; sleep 3
+          done
+          [ -n "$$created" ] || { echo "bucket $$b creation failed"; exit 1; }
+        done
+
+volumes:
+  seaweedfs-data:
+networks:
+  ozone-analytics:
