@@ -4,7 +4,7 @@
 
 # JVM flags Flink requires on Java 17+ to reach JDK internals the module system closed off. Without
 # them the job dies at startup with InaccessibleObjectException. The list "must not be shortened,
-# only extended" per the Flink docs.
+# only extended" per the Flink docs; re-check it against the image on a Flink upgrade.
 env:
   java:
     opts:
@@ -20,26 +20,40 @@ jobmanager:
     jvm-metaspace:
       size: 1g
 
-# Each flattening statement runs as its own job and, when streaming, holds its slots for the life of
-# the job. Total slots (numberOfTaskSlots x TASK_MANAGER_REPLICAS) must be at least
-# <number of statements> x parallelism.default, or later jobs sit pending forever.
+# Each flattening statement runs as its own job and holds its slots for the life of the job. Total
+# slots (numberOfTaskSlots x TASK_MANAGER_REPLICAS) must be at least
+# <number of statements> x parallelism.default, or later jobs sit pending forever. At parallelism 1,
+# the 13 statements need 13 slots.
+#
+# This cluster runs TASK_MANAGER_REPLICAS (2) TaskManagers, and each one has enough slots to hold
+# every job by itself: when one dies, its jobs restart on the other instead of waiting with nowhere
+# to run. load-balance.mode spreads jobs across both, so a crash restarts only the jobs that were on
+# the TaskManager that died.
+#
+# Metaspace is raised from the 256m default because a session cluster loads a separate copy of the
+# job's classes for each job it runs. The JobManager has 1g for the same reason.
 taskmanager:
-  numberOfTaskSlots: 32
+  numberOfTaskSlots: 16
+  load-balance:
+    mode: SLOTS
   memory:
     process:
       size: 8g
     managed:
-      fraction: 0.8
+      fraction: 0.5
+    jvm-metaspace:
+      size: 1g
 
+# The job-submitter builds the streaming jobs with config.yaml's value, so keep the two in sync.
 parallelism:
-  default: 2
+  default: 1
 
 # Exactly-once checkpointing to S3 (SeaweedFS). Unaligned checkpoints keep barriers moving when a
 # sink backpressures, so one slow sink does not stall its job's checkpoints.
 execution:
   checkpointing:
     mode: EXACTLY_ONCE
-    interval: 10min
+    interval: 1min
     timeout: 10min
     unaligned:
       enabled: true
@@ -76,9 +90,12 @@ table:
   exec:
     sink:
       require-on-conflict: false
-    # Batch writes to PostgreSQL rather than one statement per row.
+    # Off on purpose. With mini-batch on, joins run on MiniBatchStreamingJoinOperator, whose close()
+    # throws a NullPointerException when a task fails during restore; Flink treats that as fatal and
+    # kills the whole TaskManager, taking every job on it down. This setting only buffers join and
+    # aggregate input -- writes to PostgreSQL are still batched by the JDBC sink (sink.buffer-flush.*).
     mini-batch:
-      enabled: true
+      enabled: false
       allow-latency: 5s
       size: 5000
     # Without a TTL a streaming join retains state forever -- the usual cause of unbounded state.

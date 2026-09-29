@@ -69,7 +69,10 @@ compose_files=(
     docker-compose-redpanda-console.yaml # Kafka + Connect web UI
     docker-compose-superset.yaml         # dashboards
 )
-compose=(docker compose -p ozone-analytics)
+# --profile submit includes job-submitter, which is otherwise excluded so that a bare
+# `docker compose up` restores the cluster without touching jobs. The submitter itself is
+# idempotent: it will not resubmit jobs that are already running.
+compose=(docker compose -p ozone-analytics --profile submit)
 for f in "${compose_files[@]}"; do compose+=(-f "../docker/$f"); done
 
 echo "$INFO Starting Ozone Analytics streaming services (${#compose_files[@]} compose files)..."
