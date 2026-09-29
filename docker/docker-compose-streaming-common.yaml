@@ -201,6 +201,7 @@ services:
       - ODOO_DB_HOST=${ODOO_DB_HOST:-postgresql}
       - ODOO_DB_PORT=${ODOO_DB_PORT:-5432}
       - ANALYTICS_CONFIG_FILE=/analytics/config.yaml
+      - ANALYTICS_JOBMANAGER_REST=jobmanager:8081
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     command:
@@ -209,14 +210,40 @@ services:
       - |
         set -e
         JM=jobmanager:8081
+        # Derived from the mounted query files, so this stays right when a table is added.
+        EXPECTED=$$(ls -1 /analytics/queries/*.sql 2>/dev/null | wc -l | tr -d '[:space:]')
+
+        # Match on job name, not on the literal "(RUNNING)": a job recovering from HA is
+        # CREATED/INITIALIZING/RESTARTING for a while and would otherwise be counted as absent.
+        count_jobs() { /opt/flink/bin/flink list -m $$JM -r 2>/dev/null | grep -c 'streaming-' || true; }
+
         echo "Waiting for the session cluster at $$JM ..."
         until /opt/flink/bin/flink list -m $$JM >/dev/null 2>&1; do sleep 3; done
-        running=$$(/opt/flink/bin/flink list -m $$JM -r 2>/dev/null | grep -c '(RUNNING)' || true)
-        if [ "$${running:-0}" -gt 0 ]; then
-          echo "$$running job(s) already running (recovered from HA); not resubmitting."
+
+        # The JobManager answers `list` before HA recovery has finished restoring jobs. Deciding
+        # on that first answer races recovery and submits a duplicate set, so wait for the count
+        # to stop moving before deciding anything.
+        echo "Waiting for job recovery to settle ..."
+        prev=-1; stable=0; n=0
+        while [ "$$stable" -lt 3 ]; do
+          sleep 5
+          n=$$(count_jobs)
+          if [ "$$n" = "$$prev" ]; then stable=$$((stable + 1)); else stable=0; fi
+          prev=$$n
+        done
+
+        # Fast path only: skip starting a JVM when the full set is already back. Anything else
+        # goes to the engine, which compares job names against the cluster and submits just the
+        # missing ones, so a partial recovery is repaired rather than duplicated or refused.
+        if [ "$$n" -ge "$$EXPECTED" ] && [ "$$n" -gt 0 ]; then
+          echo "$$n job(s) already active (recovered from HA); nothing to submit."
           exit 0
         fi
-        echo "Submitting streaming jobs to the session cluster..."
+        if [ "$$n" -gt 0 ]; then
+          echo "$$n of $$EXPECTED job(s) active; the engine will submit only the missing ones."
+        else
+          echo "No streaming jobs on the cluster. Submitting $$EXPECTED job(s)..."
+        fi
         exec /opt/flink/bin/flink run -m $$JM -d \
           -c com.ozonehis.analytics.AnalyticsJob /opt/flink/usrlib/analytics-etl.jar streaming
     depends_on:
