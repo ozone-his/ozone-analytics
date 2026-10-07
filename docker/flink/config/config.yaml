@@ -58,6 +58,9 @@ execution:
   checkpointing:
     mode: EXACTLY_ONCE
     interval: 1min
+    # Guarantees a gap between one checkpoint finishing and the next starting, so 13 jobs
+    # checkpointing every minute cannot write to the state store back to back while they catch up.
+    min-pause: 1min
     timeout: 10min
     unaligned:
       enabled: true

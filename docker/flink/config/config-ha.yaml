@@ -63,6 +63,9 @@ execution:
   checkpointing:
     mode: EXACTLY_ONCE
     interval: 1min
+    # Guarantees a gap between one checkpoint finishing and the next starting, so 13 jobs
+    # checkpointing every minute cannot write to the state store back to back while they catch up.
+    min-pause: 1min
     timeout: 10min
     unaligned:
       enabled: true
@@ -92,6 +95,12 @@ high-availability:
   cluster-id: /ozone-analytics-streaming
   zookeeper:
     quorum: zookeeper:2181
+    client:
+      # Matches maxSessionTimeout on the zookeeper service; the server grants the smaller of the two.
+      session-timeout: 2min
+      # A dropped connection whose session is still alive no longer costs the JobManager its
+      # leadership, and with it every running job. Only a session that actually expires does.
+      tolerate-suspended-connections: true
 
 restart-strategy:
   type: exponential-delay
