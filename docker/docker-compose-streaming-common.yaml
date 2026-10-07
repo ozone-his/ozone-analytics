@@ -133,6 +133,14 @@ services:
       ozone-analytics:
     image: zookeeper:3.9
     restart: unless-stopped
+    environment:
+      # ZooKeeper caps a session at 20 x tickTime = 40s by default, whatever the client asks for. When
+      # the host's disk or memory stalls ZooKeeper for longer than that, every Flink session expires
+      # at once and the JobManager loses leadership. Two minutes rides out such a stall; the Flink
+      # side asks for the same in config-ha.yaml.
+      - ZOO_CFG_EXTRA=maxSessionTimeout=120000
+      # Off by default, so snapshots and transaction logs otherwise pile up on disk forever.
+      - ZOO_AUTOPURGE_PURGEINTERVAL=1
 
   # Session cluster. Uses the base Flink image, not ozone-flink-jobs-streaming: the application jar is not on
   # the cluster classpath (usrlib is only loaded in application mode) -- it rides in with each job
