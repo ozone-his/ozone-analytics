@@ -28,10 +28,9 @@ jobmanager:
 # <number of statements> x parallelism.default, or later jobs sit pending forever. At parallelism 1,
 # the 13 statements need 13 slots.
 #
-# Streaming runs TASK_MANAGER_REPLICAS (2) TaskManagers, and each one has enough slots to hold every
-# job by itself: when one dies, its jobs restart on the other instead of waiting with nowhere to
-# run. load-balance.mode spreads jobs across both, so a crash restarts only the jobs that were on
-# the TaskManager that died.
+# This sizing is for batch and export, which each run ONE TaskManager from this file, so it needs a
+# slot for every job. The streaming cluster is sized separately in config-ha.yaml (several smaller
+# TaskManagers); the two files are meant to differ here.
 #
 # Metaspace is raised from the 256m default because a session cluster loads a separate copy of the
 # job's classes for each job it runs. The JobManager has 1g for the same reason.
@@ -89,7 +88,11 @@ table:
       enabled: false
       allow-latency: 5s
       size: 5000
-    # Without a TTL a streaming join retains state forever -- the usual cause of unbounded state.
+    # How long a row in a fact table (observations, orders, visits, ...) keeps receiving changes from
+    # the tables joined to it, which bounds state for the largest tables. It does NOT apply to the
+    # joined reference tables, list aggregates or reference-driven jobs (patients, providers,
+    # concepts, locations): the flattening queries set those to never expire with STATE_TTL hints,
+    # because an expired reference row makes every later row that points at it come out empty.
     state:
       ttl: 1h
 
