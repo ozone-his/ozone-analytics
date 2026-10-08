@@ -59,8 +59,13 @@ services:
   superset-init:
     command: "/app/superset-init.sh"
     depends_on:
-      - postgresql
-      - redis
+      postgresql:
+        condition: service_started
+      redis:
+        condition: service_started
+      postgresql-grants:
+        condition: service_completed_successfully
+        required: false
     environment: *superset-env
     image: *superset-image
     restart: on-failure

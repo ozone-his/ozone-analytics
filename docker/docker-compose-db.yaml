@@ -34,6 +34,24 @@ services:
       - "${SQL_SCRIPTS_PATH:-./sqls}/postgresql/analytics:/docker-entrypoint-initdb.d/db/analytics"
       - "${SQL_SCRIPTS_PATH:-./sqls}/postgresql/superset:/docker-entrypoint-initdb.d/db/superset"
       - "${SQL_SCRIPTS_PATH:-./sqls}/postgresql/hapi:/docker-entrypoint-initdb.d/db/hapi"
+  # Gives each application user the right to create tables in its own database. Runs on every
+  # start because the init scripts above only run once, on an empty data directory. See the script.
+  postgresql-grants:
+    networks:
+      ozone-analytics:
+    image: postgres:${POSTGRES_VERSION}
+    restart: on-failure
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      PGHOST: postgresql
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./sqls/postgresql/grant_schema.sh:/grant_schema.sh:ro
+    entrypoint: [ "/bin/sh", "/grant_schema.sh" ]
+    command: [ "${ANALYTICS_DB_NAME}", "${ANALYTICS_DB_USER}", "${SUPERSET_DB}", "${SUPERSET_DB_USER}", "${HAPI_DB_NAME}", "${HAPI_DB_USER}" ]
 volumes:
    postgresql-data: ~
 networks:
