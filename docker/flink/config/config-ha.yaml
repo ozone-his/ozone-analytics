@@ -20,6 +20,13 @@ jobmanager:
     jvm-metaspace:
       size: 1g
 
+# Keep in sync with config.yaml: HA recovery uses the value baked into each job at submission time.
+pekko:
+  ask:
+    timeout: 120s
+  lookup:
+    timeout: 120s
+
 # Each flattening statement runs as its own job and holds its slots for the life of the job. Total
 # slots (numberOfTaskSlots x TASK_MANAGER_REPLICAS) must be at least
 # <number of statements> x parallelism.default, or later jobs sit pending forever. At parallelism 1,
