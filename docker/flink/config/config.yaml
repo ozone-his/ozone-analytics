@@ -1,0 +1,131 @@
+# This owns HOW the pipelines run. What they compute is defined separately in the analytics pipeline
+# config, mounted from the distro at ANALYTICS_CONFIG_FILE.
+#
+# The file is shared by the application-mode batch and export jobs. The streaming session cluster
+# uses config-ha.yaml instead (this file plus a high-availability block) -- HA is not set here,
+# because application mode does not support HA for a cluster running many jobs at once.
+
+# JVM flags Flink requires on Java 17+ to reach JDK internals the module system closed off. Without
+# them the job dies at startup with InaccessibleObjectException. The list "must not be shortened,
+# only extended" per the Flink docs; re-check it against the image on a Flink upgrade.
+env:
+  java:
+    opts:
+      all: --add-exports=java.base/sun.net.util=ALL-UNNAMED --add-exports=java.rmi/sun.rmi.registry=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-exports=java.security.jgss/sun.security.krb5=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED
+
+jobmanager:
+  rpc:
+    address: jobmanager
+    port: 6123
+  memory:
+    process:
+      size: 3g
+    jvm-metaspace:
+      size: 1g
+
+# The job-submitter builds the streaming jobs from this file, and each job keeps its value in the
+# job graph stored for HA. On recovery the JobManager uses that stored value, not config-ha.yaml's,
+# as the RPC timeout for every job it re-reads from ZooKeeper. While it is still restoring all 13
+# jobs, the 10s default times out, Flink treats it as fatal (exit 239), and the container restart-loops.
+# Jobs submitted before this was set keep 10s until they are resubmitted.
+pekko:
+  ask:
+    timeout: 120s
+  lookup:
+    timeout: 120s
+
+# Each flattening statement runs as its own job and, when streaming, holds its slots for the life of
+# the job. Total slots (numberOfTaskSlots x TASK_MANAGER_REPLICAS) must be at least
+# <number of statements> x parallelism.default, or later jobs sit pending forever. At parallelism 1,
+# the 13 statements need 13 slots.
+#
+# This sizing is for batch and export, which each run ONE TaskManager from this file, so it needs a
+# slot for every job. The streaming cluster is sized separately in config-ha.yaml (several smaller
+# TaskManagers); the two files are meant to differ here.
+#
+# Metaspace is raised from the 256m default because a session cluster loads a separate copy of the
+# job's classes for each job it runs. The JobManager has 1g for the same reason.
+taskmanager:
+  numberOfTaskSlots: 16
+  load-balance:
+    mode: SLOTS
+  memory:
+    process:
+      size: 8g
+    managed:
+      fraction: 0.5
+    jvm-metaspace:
+      size: 1g
+
+# Read by the job-submitter when it builds the streaming jobs, so it must match config-ha.yaml.
+# One subtask per job is plenty for a single site's change volume, and the batch pipeline gains
+# little from more: each table is read over JDBC as a single split.
+parallelism:
+  default: 1
+
+# Exactly-once checkpointing to S3 (SeaweedFS). Unaligned checkpoints keep barriers moving when a
+# sink backpressures, so one slow sink does not stall its job's checkpoints.
+execution:
+  checkpointing:
+    mode: EXACTLY_ONCE
+    interval: 1min
+    # Guarantees a gap between one checkpoint finishing and the next starting, so 13 jobs
+    # checkpointing every minute cannot write to the state store back to back while they catch up.
+    min-pause: 1min
+    timeout: 10min
+    unaligned:
+      enabled: true
+    tolerable-failed-checkpoints: 50
+
+state:
+  backend:
+    type: rocksdb
+    incremental: true
+  checkpoints:
+    dir: s3://flink-state-bucket/checkpoints/
+    num-retained: 2
+  savepoints:
+    dir: s3://flink-state-bucket/savepoints/
+
+restart-strategy:
+  type: exponential-delay
+
+table:
+  exec:
+    sink:
+      require-on-conflict: false
+    # Off on purpose. With mini-batch on, joins run on MiniBatchStreamingJoinOperator, whose close()
+    # throws a NullPointerException when a task fails during restore; Flink treats that as fatal and
+    # kills the whole TaskManager, taking every job on it down. This setting only buffers join and
+    # aggregate input -- writes to PostgreSQL are still batched by the JDBC sink (sink.buffer-flush.*).
+    mini-batch:
+      enabled: false
+      allow-latency: 5s
+      size: 5000
+    # How long a row in a fact table (observations, orders, visits, ...) keeps receiving changes from
+    # the tables joined to it, which bounds state for the largest tables. It does NOT apply to the
+    # joined reference tables, list aggregates or reference-driven jobs (patients, providers,
+    # concepts, locations): the flattening queries set those to never expire with STATE_TTL hints,
+    # because an expired reference row makes every later row that points at it come out empty.
+    state:
+      ttl: 1h
+
+# Presto S3 access to SeaweedFS. Credentials come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in
+# the environment via the standard AWS credential chain. Path-style access is required because
+# SeaweedFS does not serve virtual-host style buckets.
+s3:
+  endpoint: http://seaweedfs:8333
+  path:
+    style:
+      access: true
+
+metrics:
+  reporters: prom
+  reporter:
+    prom:
+      factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+      port: 9250
+
+rest:
+  address: 0.0.0.0
+  bind-address: 0.0.0.0
