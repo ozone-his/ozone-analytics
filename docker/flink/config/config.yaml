@@ -23,6 +23,17 @@ jobmanager:
     jvm-metaspace:
       size: 1g
 
+# The job-submitter builds the streaming jobs from this file, and each job keeps its value in the
+# job graph stored for HA. On recovery the JobManager uses that stored value, not config-ha.yaml's,
+# as the RPC timeout for every job it re-reads from ZooKeeper. While it is still restoring all 13
+# jobs, the 10s default times out, Flink treats it as fatal (exit 239), and the container restart-loops.
+# Jobs submitted before this was set keep 10s until they are resubmitted.
+pekko:
+  ask:
+    timeout: 120s
+  lookup:
+    timeout: 120s
+
 # Each flattening statement runs as its own job and, when streaming, holds its slots for the life of
 # the job. Total slots (numberOfTaskSlots x TASK_MANAGER_REPLICAS) must be at least
 # <number of statements> x parallelism.default, or later jobs sit pending forever. At parallelism 1,
