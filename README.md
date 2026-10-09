@@ -210,6 +210,25 @@ cd scripts
 ./start-fhir-data-pipes.sh
 ```
 
+For a **central / multi-site** HAPI with request-tenant partitioning (avoids HTTP 409 when sites reuse logical IDs):
+
+```bash
+USE_HAPI_SHR_OVERRIDE=true ./start-fhir-data-pipes.sh
+./create-fhir-partition.sh http://localhost:8093 1 lis1
+```
+
+Site pipes then sink with either a full URL or base + partition name:
+
+```bash
+export SINK_FHIR_BASE_URL=http://hapi-server:8080/fhir
+export FHIR_SINK_PARTITION_NAME=lis1
+# -> SINK_FHIR_SERVER_URL=http://hapi-server:8080/fhir/lis1
+```
+
+`database_partition_mode_enabled` is required so the same logical resource ID can exist in multiple site partitions. That mode needs an **empty HAPI database** on first enable (wipe/recreate the `hapi` DB, then recreate partitions).
+
+Per-site OpenELIS FHIR (`fhir.openelis.org`) is unchanged and continues to feed local Odoo sync.
+
 2) Load sample FHIR data
 
 ```bash
