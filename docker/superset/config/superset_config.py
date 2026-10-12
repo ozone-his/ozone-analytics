@@ -4,10 +4,17 @@ from cachelib import RedisCache
 
 logger = logging.getLogger()
 
-def password_from_env(url):
-    return os.getenv("ANALYTICS_DB_PASSWORD")
+# Inject the analytics password from the environment only for the analytics database. A global
+# SQLALCHEMY_CUSTOM_PASSWORD_STORE would apply it to every connection and break databases added
+# through the UI, which must keep the password entered there.
+def analytics_password_mutator(uri, params, username, security_manager, source):
+    if uri.database == os.getenv("ANALYTICS_DB_NAME", "analytics"):
+        env_pass = os.getenv("ANALYTICS_DB_PASSWORD")
+        if env_pass:
+            uri = uri.set(password=env_pass)
+    return uri, params
 
-SQLALCHEMY_CUSTOM_PASSWORD_STORE = password_from_env
+DB_CONNECTION_MUTATOR = analytics_password_mutator
 
 def get_env_variable(var_name, default=None):
     """Get the environment variable or raise exception."""
