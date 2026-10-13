@@ -1,13 +1,14 @@
-version: '3.8'
+# Batch flattening pipeline.
+#
 services:
-  batch-etl:
+  batch-etl: &batch
     networks:
       ozone-analytics:
-    image: mekomsolutions/ozone-flink-jobs-batch
+    image: mekomsolutions/ozone-flink-jobs-batch:${OZONE_FLINK_JOBS_VERSION:-latest}
     depends_on:
       analytics-migration:
         condition: service_completed_successfully
-    environment:
+    environment: &batch-env
       - ANALYTICS_SOURCE_TABLES_PATH=/analytics/source-tables
       - ANALYTICS_QUERIES_PATH=/analytics/queries
       - ANALYTICS_DB_NAME=${ANALYTICS_DB_NAME}
@@ -26,19 +27,29 @@ services:
       - ODOO_DB_PASSWORD=${ODOO_DB_PASSWORD:-password}
       - ODOO_DB_HOST=${ODOO_DB_HOST:-postgresql}
       - ODOO_DB_PORT=${ODOO_DB_PORT:-5432}
-      - ANALYTICS_CONFIG_FILE_PATH=/analytics/config.yaml
-      - JAVA_OPTS=${JAVA_OPTS}
-      - NETWORK_MEMORY_MIN=${NETWORK_MEMORY_MIN:-1g}
-      - NETWORK_MEMORY_MAX=${NETWORK_MEMORY_MAX:-1g}
-      - TOTAL_PROCESS_MEMORY=${TOTAL_PROCESS_MEMORY:-8g}
-      - MANAGED_MEMORY_FRACTION=${MANAGED_MEMORY_FRACTION:-0.7}
+      - ANALYTICS_CONFIG_FILE=/analytics/config.yaml
+      # Credentials for the S3 (SeaweedFS) state store; endpoint and bucket live in config.yaml.
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
       - "8084:8081"
-    volumes:
+    volumes: &batch-volumes
+      - ./flink/config/config.yaml:/opt/flink/conf/config.yaml
       - ${ANALYTICS_QUERIES_PATH}:/analytics/queries
       - ${ANALYTICS_SOURCE_TABLES_PATH}:/analytics/source-tables
-      - ${ANALYTICS_CONFIG_FILE_PATH}:/analytics/config.yaml
+      - ${ANALYTICS_CONFIG_FILE}:/analytics/config.yaml
+
+  # Runs the actual work. Without it the JobManager accepts the job and then waits forever for
+  # slots that never arrive.
+  batch-etl-taskmanager:
+    <<: *batch
+    command: taskmanager
+    ports: []
+    environment: *batch-env
+    volumes: *batch-volumes
+    depends_on:
+      - batch-etl
 networks:
   ozone-analytics:

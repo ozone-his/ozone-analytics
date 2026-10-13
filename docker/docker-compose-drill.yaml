@@ -1,16 +1,15 @@
-version: "3.8"
 services:
   drill:
     restart: unless-stopped
     networks:
       ozone-analytics:
-    image: apache/drill:1.21.2-openjdk-11
+    image: apache/drill:1.21.2-openjdk-17
     ports:
       - "8047:8047"
     stdin_open: true
     environment:
-      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     volumes:
       - ./parquet:/parquet
       - ./drill/data:/data
