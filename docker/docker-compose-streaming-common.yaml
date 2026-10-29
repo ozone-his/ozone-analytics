@@ -59,6 +59,11 @@ services:
     image: quay.io/debezium/connect:${DEBEZIUM_VERSION}
     networks:
       ozone-analytics:
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: "5"
     ports:
       - 8383:8083
     environment:
@@ -89,6 +94,14 @@ services:
       - CONNECT_ODOO_DB_NAME=${CONNECT_ODOO_DB_NAME:-odoo}
       - CONNECT_ODOO_DB_SERVER_NAME=erp
       - CONNECT_ODOO_DB_INCLUDE_LIST=odoo
+      # Logging. The image also writes every line to /kafka/logs/connect-service.log, rolled every
+      # hour and never deleted, in a volume that outlives the container. Log to the console only,
+      # which Docker caps above. Kafka's own client and plugin-loading messages drop to warnings:
+      # they repeat every client configuration in full each time a client is created.
+      - CONNECT_LOG4J_LOGGERS=INFO, stdout
+      - CONNECT_LOG4J_LOGGER_ORG_APACHE_KAFKA_CLIENTS=WARN
+      - CONNECT_LOG4J_LOGGER_ORG_APACHE_KAFKA_COMMON=WARN
+      - CONNECT_LOG4J_LOGGER_ORG_APACHE_KAFKA_CONNECT_RUNTIME_ISOLATION=WARN
 
   # Registers the Debezium connectors once Connect is up. A stock curl one-shot that PUTs the
   # connector definitions in ./connect/*.json to the Connect REST API. The connector definitions are parameterized with
@@ -178,8 +191,9 @@ services:
 
   # Client that submits the streaming jobs to the session cluster, then exits. The only place the
   # application jar (mekomsolutions/ozone-flink-jobs-streaming) and the pipeline config live.
-  # Idempotent: if the cluster already has jobs running (recovered from HA after a restart), it does
-  # not resubmit.
+  # Safe to rerun: the engine leaves a job alone when it already runs the current query (recovered
+  # from HA after a restart, say), submits the ones that are missing, and replaces a job whose query
+  # file has changed since it was submitted.
   job-submitter:
     networks:
       ozone-analytics:
@@ -219,8 +233,6 @@ services:
       - |
         set -e
         JM=jobmanager:8081
-        # Derived from the mounted query files, so this stays right when a table is added.
-        EXPECTED=$$(ls -1 /analytics/queries/*.sql 2>/dev/null | wc -l | tr -d '[:space:]')
 
         # Match on job name, not on the literal "(RUNNING)": a job recovering from HA is
         # CREATED/INITIALIZING/RESTARTING for a while and would otherwise be counted as absent.
@@ -241,18 +253,10 @@ services:
           prev=$$n
         done
 
-        # Fast path only: skip starting a JVM when the full set is already back. Anything else
-        # goes to the engine, which compares job names against the cluster and submits just the
-        # missing ones, so a partial recovery is repaired rather than duplicated or refused.
-        if [ "$$n" -ge "$$EXPECTED" ] && [ "$$n" -gt 0 ]; then
-          echo "$$n job(s) already active (recovered from HA); nothing to submit."
-          exit 0
-        fi
-        if [ "$$n" -gt 0 ]; then
-          echo "$$n of $$EXPECTED job(s) active; the engine will submit only the missing ones."
-        else
-          echo "No streaming jobs on the cluster. Submitting $$EXPECTED job(s)..."
-        fi
+        # The engine compares each job on the cluster with its query file and submits, keeps or
+        # replaces it accordingly, so it always runs; a job count alone cannot tell that a query
+        # changed.
+        echo "$$n streaming job(s) active; handing over to the engine to reconcile them."
         exec /opt/flink/bin/flink run -m $$JM -d \
           -c com.ozonehis.analytics.AnalyticsJob /opt/flink/usrlib/analytics-etl.jar streaming
     depends_on:
